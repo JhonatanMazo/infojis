@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">          
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>     
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+        
+        <!-- Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Estado:</label>
+                                <select class="form-select" name="filtro_estado" id="filtro_estado">
+                                    <option value="">Todos los estados</option>
+                                    {% for estado in lista_estados %}
+                                        <option value="{{ estado }}"
+                                            {% if request.args.get('estado') == estado %}selected{% endif %}>
+                                            {{ estado }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-filter w-100" id="btn-filtrar">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="container-fluid py-4">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Asignaturas Registradas</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-book me-1 text-primary"></i><strong>Asignaturas: </strong><span id="numeroAsignaturas">{{ asignaturas.total }}</span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('asignaturas.exportar_asignaturas_pdf', estado=request.args.get('estado')) }}" 
+                              class="btn btn-outline-secondary me-2">
+                               <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAsignatura">
+                                <i class="fas fa-plus-circle me-1"></i>Nueva Asignatura
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if not asignaturas.items %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay asignaturas registradas.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% for asignatura in asignaturas.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (asignaturas.page - 1) * asignaturas.per_page }}</td>
+                                        <td>{{ asignatura.nombre }}</td>
+                                        <td>{{ asignatura.descripcion }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if asignatura.estado == 'activo' %}success{% else %}danger{% endif %}">
+                                                {{ asignatura.estado|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning me-1 btn-edit-asignatura"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEditarAsignatura"
+                                                data-id="{{ asignatura.id }}"
+                                                data-nombre="{{ asignatura.nombre }}"
+                                                data-descripcion="{{ asignatura.descripcion }}"
+                                                data-estado="{{ asignatura.estado }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger btn-eliminar-asignatura"
+                                                data-id="{{ asignatura.id }}"
+                                                data-nombre="{{ asignatura.nombre }}"
+                                                type="button"> 
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ start_index }} - {{ end_index }} de {{ asignaturas.total }} registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <!-- Página anterior -->
+                                    <li class="page-item {% if not asignaturas.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('asignaturas.listar_asignaturas', page=asignaturas.prev_num, estado=request.args.get('estado')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <!-- Páginas numeradas -->
+                                    {% for page_num in asignaturas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == asignaturas.page %}active{% endif %}">
+                                                <a class="page-link"
+                                                href="{{ url_for('asignaturas.listar_asignaturas', page=page_num, estado=request.args.get('estado')) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Página siguiente -->
+                                    <li class="page-item {% if not asignaturas.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('asignaturas.listar_asignaturas', page=asignaturas.next_num, estado=request.args.get('estado')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nueva Asignatura -->
+    <div class="modal fade" id="modalAsignatura" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Nueva Asignatura</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('asignaturas.crear_asignatura') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="descripcion" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado" required>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Asignatura -->
+    <div class="modal fade" id="modalEditarAsignatura" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Asignatura</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarAsignatura" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" id="edit-nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="descripcion" id="edit-descripcion" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="estado" id="edit-estado" required>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/academico/asignaturas.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+    <style>
+        .config-card {
+            transition: transform 0.2s ease;
+            height: 100%;
+        }
+        .config-card:hover {
+            transform: translateY(-2px);
+        }
+        .active-config {
+            border-left: 4px solid #0d6efd;
+        }
+        .curso-checkbox {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .curso-checkbox:hover {
+            background-color: #f8f9fa;
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-body form {
+            flex: 1;
+        }
+        .config-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        @media (max-width: 992px) {
+            .config-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end align-items-center">
+                            
+                            {% if config_activa %}
+                            <div class="badge bg-primary">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                Año Activo: {{ config_activa.anio }}
+                                {% if config_activa.periodo_nombre %}<br>Período: {{ config_activa.periodo_nombre }}{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-container">
+                    <!-- Tarjeta Año Lectivo -->
+                    <div class="card shadow-sm config-card">
+                        <div class="card-header bg-white text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                Gestión de Año Lectivo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Selector de Año Activo -->
+                            <form method="POST" action="{{ url_for('configuracion.cambiar_anio') }}" id="form-cambiar-anio">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Año lectivo</label>
+                                        <select class="form-select" name="anio" required id="select-anio">
+                                            <option value="">Seleccionar año...</option>
+                                            {% for anio in todos_anios %}
+                                            <option value="{{ anio.anio }}" {% if anio.estado=='activo' %}selected{% endif %}>
+                                                {{ anio.anio }} {% if anio.estado == 'activo' %}(ACTIVO){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Período activo</label>
+                                        <select class="form-select" name="periodo_id" id="select-periodo" required>
+                                            <option value="">Seleccionar período...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2 mt-3">
+                                    <button type="submit" class="btn btn-sm btn-outline-filter" id="btn-cambiar-anio">
+                                        <i class="fas fa-check-circle me-1"></i> Activar Año y Período
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <hr class="my-4">
+                            
+                            <!-- Creación de Nuevo Año -->
+                            <h5 class="mb-3 fw-semibold">Crear Nuevo Año</h5>
+                            <form method="POST" action="{{ url_for('configuracion.crear_anio') }}" id="form-crear-anio">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label class="form-label">Año académico</label>
+                                        <input type="number" class="form-control" name="nuevo_anio"
+                                            
+                                            value="{{ current_year }}" required>
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <button type="submit" class="btn btn-outline-primary w-100">
+                                            <i class="fas fa-plus-circle me-1"></i> Crear Año Lectivo
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+
+                    
+                    <!-- Tarjeta Información del Rector -->
+                    <div class="card shadow-sm config-card">
+                        <div class="card-header bg-white text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-edit me-2 text-primary"></i>
+                                Información del Rector(a)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('configuracion.actualizar_rector') }}" enctype="multipart/form-data" id="form-rector">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-3">
+                                    <label for="rector_nombre" class="form-label">Nombre completo</label>
+                                    <input type="text" class="form-control" id="rector_nombre" name="rector_nombre" value="{{ rector_config.nombre if rector_config else '' }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="rector_identidad" class="form-label">Número de identidad (cédula)</label>
+                                    <input type="text" class="form-control" id="rector_identidad" name="rector_identidad" value="{{ rector_config.identidad if rector_config else '' }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="rector_firma" class="form-label">Firma digital (imagen)</label>
+                                    <input type="file" class="form-control" id="rector_firma" name="rector_firma" accept="image/*">
+                                    {% if rector_config and rector_config.firma_url %}
+                                        <div class="mt-2">
+                                            <span class="text-muted">Firma actual:</span><br>
+                                            <img src="{{ rector_config.firma_url }}" alt="Firma digital" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc; padding: 5px;">
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary w-100 mt-auto">
+                                    <i class="fas fa-save me-1"></i> Guardar Información
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAnio = document.getElementById('select-anio');
+            const selectPeriodo = document.getElementById('select-periodo');
+
+            function cargarPeriodos(anio) {
+                if (!anio) {
+                    selectPeriodo.innerHTML = '<option value="">Seleccionar período...</option>';
+                    return;
+                }
+
+                fetch(`/periodos/json/${anio}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        selectPeriodo.innerHTML = '<option value="">Seleccionar período...</option>';
+                        data.forEach(function(periodo) {
+                            const option = new Option(periodo.nombre, periodo.id);
+                            selectPeriodo.add(option);
+                        });
+                        // Pre-select the active period if available
+                        const activePeriodId = {{ config_activa.periodo_id | default(none) | tojson }};
+                        if (activePeriodId) {
+                            selectPeriodo.value = activePeriodId;
+                        }
+                    });
+            }
+
+            selectAnio.addEventListener('change', function() {
+                cargarPeriodos(this.value);
+            });
+
+            // Cargar períodos para el año seleccionado inicialmente
+            if (selectAnio.value) {
+                cargarPeriodos(selectAnio.value);
+            }
+        });
+
+        // Validación de formularios
+        document.getElementById('form-cambiar-anio').addEventListener('submit', function(e) {
+            const select = document.getElementById('select-anio');
+            if (!select.value) {
+                e.preventDefault();
+                alert('Por favor seleccione un año');
+            }
+        });
+
+        // Mostrar toast específico para cambio de año
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('anio_cambiado')) {
+                const anio = urlParams.get('anio_cambiado');
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 show';
+                toast.setAttribute('role', 'alert');
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Año lectivo ${anio} activado. Mostrando asignaciones correspondientes.
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+            }
+            
+            // Trigger change event para mostrar info inicial
+            const selectAnio = document.getElementById('select-anio');
+            if (selectAnio.value) {
+                selectAnio.dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
+</body>
+</html>

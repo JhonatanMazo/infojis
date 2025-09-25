@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script>
+        // Registrar el plugin de datalabels
+        Chart.register(ChartDataLabels);
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <!-- Título de la página -->
+                <div class="d-flex justify-content-between align-items-center mb-4 g-5" class="col-12 col-md-3">
+                    <div>
+                        <h5 class="mb-0">Estadísticas Académicas</h5>
+                    </div>
+                    <div >
+                        <button class="btn btn-outline-secondary" onclick="exportarDatos()">
+                            <i class="fas fa-file-pdf me-1"></i> Exportar
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="actualizarEstadisticas()">
+                            <i class="fas fa-sync-alt me-1"></i> Recargar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">Asistencias</h5>
+                                    <div class="d-flex gap-2">
+                                        <select class="form-select form-select-sm" id="filtroPeriodoAsistencia">
+                                            <option value="semanal">Semanal</option>
+                                            <option value="mensual">Mensual</option>
+                                            <option value="diario">Diario</option>
+                                        </select>
+                                        <select class="form-select form-select-sm" id="filtroGradoAsistencia">
+                                            <option value="todos">Todos los grados</option>
+                                            {% for curso in cursos_nombres %}
+                                            <option value="{{ curso }}">{{ curso }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="asistenciaChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">Calificaciones</h5>
+                                    <div class="d-flex gap-2">
+                                        <select class="form-select form-select-sm" id="filtroPeriodoRendimiento">
+                                            <option value="mensual">Mensual</option>
+                                            <option value="semanal">Semanal</option>
+                                            <option value="diario">Diario</option>
+                                        </select>
+                                        <select class="form-select form-select-sm" id="filtroGradoRendimiento">
+                                            <option value="todos">Todos los grados</option>
+                                            {% for curso in cursos_nombres %}
+                                            <option value="{{ curso }}">{{ curso }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="rendimientoChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <h5 class="card-title d-flex justify-content-between align-items-center mb-0">
+                                    Matrículas por Grado
+                                    <span class="badge bg-primary">
+                                        Total: <span id="totalMatriculasBadge">{{ matriculas_por_curso | sum }}</span>
+                                    </span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="matriculasChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">Distribución por Género</h5>
+                                    <select class="form-select form-select-sm w-auto" id="filtroGradoGenero">
+                                        <option value="todos">Todos los grados</option>
+                                        {% for curso in cursos_nombres %}
+                                        <option value="{{ curso }}">{{ curso }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="generoChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts de bootstrap -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->        
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+
+    <script>
+        // Declaración de variables globales para los datos
+        let datos_genero_por_grado = {{ datos_genero_por_grado | tojson }};
+        let datos_asistencia_por_grado = {{ datos_asistencia_por_grado | tojson }};
+        let datos_rendimiento_por_grado_periodo = {{ datos_rendimiento_por_grado_periodo | tojson }};
+        let cursos_nombres = {{ cursos_nombres | tojson }};
+        let total_hombres = {{ total_hombres }};
+        let total_mujeres = {{ total_mujeres }};
+        let total_matriculas = {{ matriculas_por_curso | sum }};
+        let matriculas_por_curso = {{ matriculas_por_curso | tojson }};
+
+        // --- Inicialización de gráficos ---
+        const matriculasCtx = document.getElementById('matriculasChart').getContext('2d');
+        const matriculasChart = new Chart(matriculasCtx, { 
+            type: 'bar', 
+            data: { 
+                labels: cursos_nombres, 
+                datasets: [{ 
+                    label: 'Matrículas por Grado', 
+                    data: matriculas_por_curso, 
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(0, 123, 255, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(255, 193, 7, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 2 
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.y + ' estudiantes';
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#000',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value + ' estudiantes';
+                        }
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Cantidad de estudiantes',
+                            color: '#333',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Grado',
+                            color: '#333',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                } 
+            } 
+        });
+
+        const generoCtx = document.getElementById('generoChart').getContext('2d');
+        const generoChart = new Chart(generoCtx, { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['Hombres', 'Mujeres'], 
+                datasets: [{ 
+                    data: [total_hombres, total_mujeres], 
+                    backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'], 
+                    borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'], 
+                    borderWidth: 1 
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom' 
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + ' estudiantes';
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#000',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value;
+                        }
+                    }
+                } 
+            } 
+        });
+
+        const asistenciaCtx = document.getElementById('asistenciaChart').getContext('2d');
+        const asistenciaChart = new Chart(asistenciaCtx, { 
+            type: 'line', 
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'Número de Asistencias', 
+                    data: [], 
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)', 
+                    borderColor: 'rgba(75, 192, 192, 1)', 
+                    borderWidth: 2, 
+                    tension: 0.4, 
+                    fill: true 
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Asistencias: ' + context.parsed.y;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#000',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value;
+                        }
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        min: 0, 
+                        // max: opcional, se ajusta automáticamente
+                        ticks: { 
+                            callback: function(value) { 
+                                return value; 
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        });
+
+        const rendimientoCtx = document.getElementById('rendimientoChart').getContext('2d');
+        const rendimientoChart = new Chart(rendimientoCtx, { 
+            type: 'bar', 
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'Calificación Promedio', 
+                    data: [], 
+                    backgroundColor: 'rgba(255, 159, 64, 0.7)', 
+                    borderColor: 'rgba(255, 159, 64, 1)', 
+                    borderWidth: 1 
+                }] 
+            }, 
+            options: { 
+                indexAxis: 'y', 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Calificación: ' + context.parsed.x;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#000',
+                        anchor: 'center',
+                        align: 'center',
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value;
+                        }
+                    }
+                },
+                scales: { 
+                    x: { 
+                        beginAtZero: true, 
+                        max: 10, 
+                        ticks: { 
+                            stepSize: 1 
+                        } 
+                    } 
+                } 
+            } 
+        });
+
+        // --- Funciones para actualizar gráficos ---
+
+        function actualizarGeneroChart() {
+            const gradoSeleccionado = document.getElementById('filtroGradoGenero').value;
+            let datosParaGrado;
+
+            if (gradoSeleccionado === 'todos') {
+                datosParaGrado = { hombres: total_hombres, mujeres: total_mujeres };
+            } else {
+                datosParaGrado = datos_genero_por_grado[gradoSeleccionado];
+            }
+            
+            if (datosParaGrado) {
+                generoChart.data.datasets[0].data = [datosParaGrado.hombres, datosParaGrado.mujeres];
+            } else {
+                generoChart.data.datasets[0].data = [0, 0];
+            }
+            generoChart.update();
+        }
+
+        function actualizarAsistenciaChart() {
+            const periodoSeleccionado = document.getElementById('filtroPeriodoAsistencia').value;
+            const gradoSeleccionado = document.getElementById('filtroGradoAsistencia').value;
+            let datosParaGrafico = { labels: [], data: [] };
+            if (gradoSeleccionado === 'todos') {
+                // Sumar los datos de todos los grados
+                let labels = [];
+                let data = [];
+                let first = true;
+                for (const grado in datos_asistencia_por_grado) {
+                    if (datos_asistencia_por_grado[grado][periodoSeleccionado]) {
+                        if (first) {
+                            labels = datos_asistencia_por_grado[grado][periodoSeleccionado].labels.slice();
+                            data = datos_asistencia_por_grado[grado][periodoSeleccionado].data.slice();
+                            first = false;
+                        } else {
+                            // Sumar los datos por posición
+                            datos_asistencia_por_grado[grado][periodoSeleccionado].data.forEach((val, idx) => {
+                                data[idx] = (data[idx] || 0) + val;
+                            });
+                        }
+                    }
+                }
+                datosParaGrafico = { labels, data };
+            } else if (datos_asistencia_por_grado[gradoSeleccionado] && datos_asistencia_por_grado[gradoSeleccionado][periodoSeleccionado]) {
+                datosParaGrafico = datos_asistencia_por_grado[gradoSeleccionado][periodoSeleccionado];
+            }
+            asistenciaChart.data.labels = datosParaGrafico.labels;
+            asistenciaChart.data.datasets[0].data = datosParaGrafico.data;
+            asistenciaChart.update();
+        }
+        
+        function actualizarRendimientoChart() {
+            const periodoSeleccionado = document.getElementById('filtroPeriodoRendimiento').value;
+            const gradoSeleccionado = document.getElementById('filtroGradoRendimiento').value;
+            let datosParaGrafico = { labels: [], data: [] };
+            if (gradoSeleccionado === 'todos') {
+                // Sumar los datos de todos los grados
+                let labels = [];
+                let data = [];
+                let first = true;
+                for (const grado in datos_rendimiento_por_grado_periodo) {
+                    if (datos_rendimiento_por_grado_periodo[grado][periodoSeleccionado]) {
+                        if (first) {
+                            labels = datos_rendimiento_por_grado_periodo[grado][periodoSeleccionado].labels.slice();
+                            data = datos_rendimiento_por_grado_periodo[grado][periodoSeleccionado].data.slice();
+                            first = false;
+                        } else {
+                            // Sumar los datos por posición (promedios: se puede promediar o sumar, aquí sumamos)
+                            datos_rendimiento_por_grado_periodo[grado][periodoSeleccionado].data.forEach((val, idx) => {
+                                data[idx] = (data[idx] || 0) + val;
+                            });
+                        }
+                    }
+                }
+                datosParaGrafico = { labels, data };
+            } else if (datos_rendimiento_por_grado_periodo[gradoSeleccionado] && datos_rendimiento_por_grado_periodo[gradoSeleccionado][periodoSeleccionado]) {
+                datosParaGrafico = datos_rendimiento_por_grado_periodo[gradoSeleccionado][periodoSeleccionado];
+            }
+            rendimientoChart.data.labels = datosParaGrafico.labels;
+            rendimientoChart.data.datasets[0].data = datosParaGrafico.data;
+            rendimientoChart.update();
+        }
+
+        // --- Funciones adicionales ---
+
+        function exportarDatos() {
+            const gradoSeleccionado = document.getElementById('filtroGradoAsistencia')?.value || 'todos';
+            exportarPDFConGraficas(gradoSeleccionado);
+        }
+        
+        function exportarPDFConGraficas(grado) {
+            Swal.fire({
+                title: 'Generando PDF...',
+                text: 'Por favor espera mientras se generan las gráficas',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            const graficas = [
+                { chart: asistenciaChart, nombre: 'Asistencia Semanal' },
+                { chart: rendimientoChart, nombre: 'Rendimiento Académico' },
+                { chart: matriculasChart, nombre: 'Matrículas por Grado' },
+                { chart: generoChart, nombre: 'Distribución por Género' }
+            ];
+            
+            const imagenesGraficas = [];
+            
+            graficas.forEach((grafica) => {
+                const chart = grafica.chart;
+                const hasData = chart.data.datasets.some(dataset => dataset.data.length > 0 && dataset.data.some(d => d > 0));
+
+                if (chart.canvas && hasData) {
+                    const imagen = chart.canvas.toDataURL('image/png');
+                    imagenesGraficas.push({
+                        nombre: grafica.nombre,
+                        imagen: imagen
+                    });
+                }
+            });
+            
+            enviarPDFConGraficas(grado, imagenesGraficas);
+        }
+
+        function enviarPDFConGraficas(grado, imagenesGraficas) {
+            const url = `/informes/estadisticas/api/exportar?grado=${grado}`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    graficas: imagenesGraficas
+                })
+            })
+            .then(response => {
+                Swal.close();
+                if (response.ok && response.headers.get("Content-Type").includes("application/pdf")) {
+                    return response.blob();
+                }
+                return response.json().then(err => {
+                    throw new Error(err.message || 'Error al generar PDF');
+                });
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `estadisticas_${grado}_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                // Show flash-like success message
+                const flashMessage = `
+                    <div class="toast align-items-center text-bg-success border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                PDF exportado correctamente.
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.position-fixed.top-0.end-0').insertAdjacentHTML('beforeend', flashMessage);
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                // Show flash-like error message
+                const flashMessage = `
+                    <div class="toast align-items-center text-bg-danger border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                ${error.message || 'No se pudo generar el PDF'}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.position-fixed.top-0.end-0').insertAdjacentHTML('beforeend', flashMessage);
+            });
+        }
+
+        function actualizarEstadisticas() {
+            window.location.reload();
+        }
+
+        // --- Inicialización al cargar la página ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar event listeners para los filtros
+            document.getElementById('filtroGradoGenero').addEventListener('change', actualizarGeneroChart);
+            document.getElementById('filtroPeriodoAsistencia').addEventListener('change', actualizarAsistenciaChart);
+            document.getElementById('filtroGradoAsistencia').addEventListener('change', actualizarAsistenciaChart);
+            document.getElementById('filtroPeriodoRendimiento').addEventListener('change', actualizarRendimientoChart);
+            document.getElementById('filtroGradoRendimiento').addEventListener('change', actualizarRendimientoChart);
+            
+            // Inicializar gráficos con datos iniciales
+            actualizarAsistenciaChart();
+            actualizarRendimientoChart();
+        });
+    </script>
+</body>
+</html>

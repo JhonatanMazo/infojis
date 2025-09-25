@@ -1,0 +1,49 @@
+# ====================================
+# GESTIÓN DE INSTALAR EL ENTORNO VIRTUAL
+# ====================================
+
+# 1. EN EL TERMINAL
+python -m venv venv
+
+# 2. activar el entorno virtual
+venv\Scripts\activate
+
+# 3. desactivar el entorno virtual
+deactivate
+
+
+# ====================================
+# GESTIÓN DE DEPENDENCIAS (REQUIREMENTS.TXT)
+# ====================================
+
+# . Instalar dependencias desde requirements.txt
+pip install -r requirements.txt
+
+
+# 2. Actualizar archivo requirements.txt
+pip freeze > requirements.txt
+
+
+
+# ====================================
+# GESTIÓN DE MIGRACIONES
+# ====================================
+
+# 1. Configuración inicial (si es la primera migración)
+flask db init
+
+# 2. Crear la migración para el modelo deseado
+flask db migrate -m "texto descriptivo de la apción"
+
+# 3. Aplicar la migración
+flask db upgrade
+
+
+
+# ====================================
+# ELIMINAR EL ENTORNO VIRTUAL
+# ====================================
+
+Remove-Item -Recurse -Force .\venv\
+
+

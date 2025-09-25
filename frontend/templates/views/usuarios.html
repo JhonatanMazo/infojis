@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+<body>
+    <div class="app-container"> 
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+        
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+          
+        
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+            
+            <div class="container-fluid py-4">
+                <!-- Filtros -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Rol:</label>
+                                <select class="form-select" name="filtro_rol" id="filtro_rol">
+                                    <option value="">Todos los roles</option>
+                                    {% for rol in lista_roles %}
+                                       <option value="{{ rol }}"
+                                               {% if request.args.get('rol') == rol %}selected{% endif %}>
+                                           {{ rol }}
+                                       </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado:</label>
+                                <select class="form-select" name="filtro_estado" id="filtro_estado">
+                                    <option value="">Todos los estados</option>
+                                    {% for estado in lista_estados %}
+                                        <option value="{{ estado }}"
+                                                {% if request.args.get('estado') == estado %}selected{% endif %}>
+                                            {{ estado }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-filter w-100" id="btn-filtrar">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de Usuarios -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Gestión de Usuarios</h5>
+                            <div class="text-muted small">
+                                <span class="me-3"><i class="fas fa-users me-1 text-primary"></i><strong>Usuarios: </strong><span id="total-usuarios">{{ usuarios.total }}</span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('usuarios.exportar_usuarios_pdf', estado=request.args.get('estado'), rol=request.args.get('rol')) }}" 
+                               class="btn btn-outline-secondary me-2">
+                               <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                                <i class="fas fa-plus-circle me-1"></i> Nuevo Usuario
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Nombres</th>
+                                        <th>Apellidos</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Fecha de creación</th>
+                                        <th>Fecha ultimo acceso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaUsuarios">
+                                    {% for usuario in usuarios.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (usuarios.page - 1) * usuarios.per_page }}</td>
+                                        <td>
+                                            {% if usuario.foto %}
+                                                <img src="{{ usuario.get_profile_picture_url() or'img/default-profile.jpg'}}"
+                                                    alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                     alt="Foto por defecto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ usuario.nombre }}</td>
+                                        <td>{{ usuario.apellidos or '' }}</td>
+                                        <td>{{ usuario.email }}</td>
+                                        <td>{{ usuario.rol }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if usuario.estado == 'activo' %}success{% else %}danger{% endif %}">
+                                                {{ usuario.estado|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>{{ usuario.creado_en.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            {% if usuario.ultimo_acceso %}
+                                                {{ usuario.ultimo_acceso.strftime('%Y-%m-%d') }}
+                                            {% else %}
+                                                <span class="text-muted">Nunca</span>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning me-1 btn-edit-usuario"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEditarUsuario"
+                                                data-id="{{ usuario.id }}"
+                                                data-loading-text="<i class='fas fa-spinner fa-spin'></i>">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form action="{{ url_for('usuarios.eliminar_usuario', id=usuario.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger btn-eliminar-usuario" data-nombre="{{ usuario.nombre }}"> 
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% if not usuarios.items %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay periodos registrados.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ start_index }} - {{ end_index }} de {{ usuarios.total }} registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <!-- Página anterior -->
+                                    <li class="page-item {% if not usuarios.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('usuarios.listar_usuarios', page=usuarios.prev_num, estado=request.args.get('estado'), rol=request.args.get('rol')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <!-- Páginas numeradas -->
+                                    {% for page_num in usuarios.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == usuarios.page %}active{% endif %}">
+                                                <a class="page-link"
+                                                href="{{ url_for('usuarios.listar_usuarios', page=page_num, estado=request.args.get('estado'), rol=request.args.get('rol')) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Página siguiente -->
+                                    <li class="page-item {% if not usuarios.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('usuarios.listar_usuarios', page=usuarios.next_num, estado=request.args.get('estado'), rol=request.args.get('rol')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    
+                </div>
+            </main>
+        </div>
+            
+         <!-- Modal Nuevo Usuario -->
+        <div class="modal fade" id="modalNuevoUsuario">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Crear Nuevo Usuario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombres <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="nombre" placeholder="Ingrese nombre" required
+                                    maxlength="100" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"
+                                    title="Solo se permiten letras y espacios">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Apellidos</label>
+                                <input type="text" class="form-control" name="apellidos" placeholder="Ingrese apellido" required
+                                    maxlength="100" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"
+                                    title="Solo se permiten letras y espacios">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Documento <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="documento" required 
+                                    placeholder="Ingrese numero de documento" maxlength="20"
+                                    pattern="^[0-9]+$"
+                                    title="Solo se permiten números">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Género <span class="text-danger">*</span></label>
+                                <select class="form-select" name="genero" required>
+                                    <option value="" selected disabled>Seleccione un género</option>
+                                    <option value="femenino">Femenino</option>
+                                    <option value="masculino">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo electrónico <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" name="email" required maxlength="120">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" name="contraseña" required
+                                       minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                                       title="Mínimo 8 caracteres, al menos 1 letra y 1 número">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Rol <span class="text-danger">*</span></label>
+                                <select class="form-select" name="rol" required>
+                                    <option selected disabled>Seleccionar rol...</option>
+                                    <option value="admin">Administrador</option>
+                                    <option value="docente">Docente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado <span class="text-danger">*</span></label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" placeholder="Ingrese teléfono"
+                                       maxlength="20" pattern="^[0-9]+$"
+                                       title="Solo se permiten números">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Adjuntar foto</label>
+                                <input type="file" class="form-control" name="foto" accept="image/*">
+                                <small class="text-muted">Formatos permitidos: JPG, PNG (Máx. 2MB)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar Usuario</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Editar Usuario -->
+    <div class="modal fade" id="modalEditarUsuario">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Usuario</h5>
+                    <button type="button"  class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarUsuario" method="POST" enctype="multipart/form-data" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="id" id="edit-usuario-id">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombres <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="nombre" id="edit-nombre" required
+                                    maxlength="100" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"
+                                    title="Solo se permiten letras y espacios">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Apellidos</label>
+                                <input type="text" class="form-control" name="apellidos" id="edit-apellidos"
+                                       maxlength="100" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"
+                                       title="Solo se permiten letras y espacios">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Documento <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="documento" id="edit-documento" required
+                                       maxlength="20" pattern="^[0-9]+$"
+                                       title="Solo se permiten números">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Género <span class="text-danger">*</span></label>
+                                <select class="form-select" name="genero" id="edit-genero" required>
+                                    <option value="femenino">Femenino</option>
+                                    <option value="masculino">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo electrónico <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" name="email" id="edit-email" required
+                                       maxlength="120">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña (dejar en blanco para no cambiar)</label>
+                                <input type="password" class="form-control" name="contraseña"
+                                       minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                                       title="Mínimo 8 caracteres, al menos 1 letra y 1 número">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Rol <span class="text-danger">*</span></label>
+                                <select class="form-select" name="rol" id="edit-rol" required>
+                                    <option value="admin">Administrador</option>
+                                    <option value="docente">Docente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado <span class="text-danger">*</span></label>
+                                <select class="form-select" name="estado" id="edit-estado" required>
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" id="edit-telefono"
+                                       maxlength="20" pattern="^[0-9]+$"
+                                       title="Solo se permiten números">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Adjuntar nueva foto</label>
+                                <input type="file" class="form-control" name="foto" accept="image/*">
+                                <small class="text-muted">Formatos permitidos: JPG, PNG (Máx. 2MB)</small>
+                                <div class="mt-2">
+                                    <label>Foto actual:</label>
+                                    <img id="edit-foto-actual" src="" class="img-thumbnail" style="max-width: 100px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Actualizar Usuario</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de bootstrap -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/usuarios.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+</body>
+</html>       

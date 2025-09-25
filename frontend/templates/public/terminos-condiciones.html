@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Términos y Condiciones de Uso - Infojis - Sistema de Información Escolar para el Jardín Infantil Sonrisas">
+  <meta name="keywords" content="términos, condiciones, uso, servicio, jardín infantil, gestión educativa">
+  <meta name="author" content="Infojis">
+  <link rel="icon" type="image/png"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+  <title>Infojis - Términos y Condiciones</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Estilos personalizados -->  
+  <link rel="stylesheet" href="../../static/css/public/terminos-condiciones.css">
+    
+  <!-- jsPDF y html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+  <div class="scroll-indicator" id="scrollIndicator"></div>
+
+  <header class="bg-white shadow sticky-top py-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a href="/" class="d-flex align-items-center text-decoration-none">
+        <div class="rounded p-2 me-2" style="background-color:#fd7e14;">
+          <i class="fas fa-graduation-cap text-white"></i>
+        </div>
+        <span class="fs-4 fw-bold header-logo"><span class="text-dark">Info</span>jis</span>
+      </a>
+      <a href="#" class="btn btn-back">
+        <i class="fas fa-arrow-left me-2"></i>Volver atrás
+      </a>
+    </div>
+  </header>
+
+  <main class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <!-- Contenido que se convertirá a PDF -->
+        <div id="contentToPrint" class="pdf-content p-4">
+
+          <!-- Encabezado del documento PDF -->
+          <div class="pdf-header">
+            <div class="pdf-logo">
+              <i class="fas fa-file-contract"></i> INFOJIS
+            </div>
+            <h1 class="pdf-title">Términos y Condiciones</h1>
+            <div class="pdf-subtitle">Sistema de Información Escolar - Jardín Infantil Sonrisas</div>
+            <div class="document-info">
+              <strong>Documento:</strong> Términos y Condiciones de Uso del Sistema<br>
+              <strong>Marco Legal:</strong> Código de Comercio - Ley 1341 de 2009<br>
+              <strong>Versión:</strong> 1.0 | <strong>Fecha de actualización:</strong> 12 de Agosto de 2025<br>
+              <strong>Vigencia:</strong> A partir de la fecha de publicación
+            </div>
+          </div>
+
+          <!-- Contenido principal -->
+          <div class="pdf-section">
+            <h2><i class="fas fa-info-circle me-2"></i>1. Información General</h2>
+            <p>Los presentes Términos y Condiciones regulan el uso del sistema de información Infojis, propiedad del
+              Jardín Infantil Sonrisas, estableciendo los derechos y obligaciones entre la institución educativa y sus
+              usuarios.</p>
+
+            <div class="terms-highlight">
+              <strong><i class="fas fa-handshake me-2"></i>Aceptación de Términos:</strong><br>
+              Al acceder y utilizar el sistema Infojis, usted acepta expresamente estos términos y condiciones,
+              comprometiéndose a cumplir con todas las disposiciones establecidas en este documento.
+            </div>
+
+            <div class="legal-reference">
+              <strong>Marco Normativo:</strong> Este documento se fundamenta en la legislación colombiana vigente,
+              incluyendo el Código de Comercio, la Ley 1341 de 2009 sobre el sector de Tecnologías de la Información y
+              las Comunicaciones, y normativas educativas aplicables.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-building me-2"></i>2. Prestador del Servicio</h2>
+            <div class="contact-info">
+              <p><strong>Denominación:</strong> Jardín Infantil Sonrisas</p>
+              <p><strong>Sistema:</strong> Infojis - Sistema de Información Escolar</p>
+              <p><strong>Domicilio Principal:</strong> Urbanización Luis Carlos Galán Mz E casa 9, Valledupar</p>
+              <p><strong>Correo electrónico:</strong> <a href="mailto:jardininfantilsonrisas2023@gmail.com"
+                  style="color: #fd7e14;">jardininfantilsonrisas2023@gmail.com</a></p>
+              <p><strong>Teléfono:</strong> +57 300 149 8933</p>
+              <p><strong>Horario de atención:</strong> Lunes a viernes de 8:00 AM a 5:00 PM</p>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-cog me-2"></i>3. Descripción del Servicio</h2>
+            <p>Infojis es un sistema integral de información escolar que proporciona los siguientes servicios:</p>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">3.1. Funcionalidades
+              Principales:</h3>
+            <ul>
+              <li><strong>Gestión de Calificaciones:</strong> Registro de calificaciones, seguimiento del progreso
+                educativo</li>
+              <li><strong>Control de Asistencia:</strong> Registro y consulta de asistencia de estudiantes</li>
+              <li><strong>Información Financiera:</strong> Consulta de estados de pagos y generación de comprobante de
+                pagos</li>
+              <li><strong>Reportes:</strong> Generación de informes académicos y administrativos</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">3.2. Tipos de Usuario:
+            </h3>
+            <ul>
+              <li><strong>Administradores:</strong> Personal directivo con acceso completo al sistema</li>
+              <li><strong>Docentes:</strong> Personal educativo con acceso a funciones pedagógicas</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-user-check me-2"></i>4. Registro y Cuentas de Usuario</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">4.1. Proceso de Registro:
+            </h3>
+            <ul>
+              <li>El registro es realizado por el personal autorizado del jardín infantil</li>
+              <li>Cada usuario recibe credenciales únicas e intransferibles</li>
+              <li>Es obligatorio proporcionar información veraz y actualizada</li>
+              <li>Los usuarios deben mantener la confidencialidad de sus credenciales</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">4.2. Responsabilidades
+              del Usuario:</h3>
+            <div class="obligations-box">
+              <ul style="margin-bottom: 0;">
+                <li>Mantener actualizados sus datos de contacto</li>
+                <li>No compartir credenciales de acceso con terceros</li>
+                <li>Notificar inmediatamente sobre accesos no autorizados</li>
+                <li>Usar el sistema únicamente para fines educativos y administrativos</li>
+                <li>Cumplir con todas las normas establecidas en estos términos</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-shield-alt me-2"></i>5. Uso Aceptable del Sistema</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">5.1. Usos Permitidos:
+            </h3>
+            <ul>
+              <li>Consultar información académica y administrativa autorizada</li>
+              <li>Comunicarse a través de los canales habilitados en el sistema</li>
+              <li>Actualizar información personal cuando esté habilitado</li>
+              <li>Generar reportes autorizados según el perfil de usuario</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">5.2. Usos Prohibidos:
+            </h3>
+            <div class="warning-box">
+              <strong><i class="fas fa-exclamation-triangle me-2"></i>Está estrictamente prohibido:</strong>
+              <ul style="margin-top: 10px; margin-bottom: 0;">
+                <li>Intentar acceder a información no autorizada</li>
+                <li>Realizar actividades que comprometan la seguridad del sistema</li>
+                <li>Usar el sistema para fines comerciales no autorizados</li>
+                <li>Distribuir contenido inapropiado, ofensivo o ilegal</li>
+                <li>Intentar modificar, dañar o interferir con el funcionamiento del sistema</li>
+                <li>Realizar ingeniería inversia o intentar descifrar códigos</li>
+                <li>Usar bots, scripts automatizados o herramientas similares</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-clock me-2"></i>6. Disponibilidad y Mantenimiento</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">6.1. Horarios de
+              Servicio:</h3>
+            <ul>
+              <li><strong>Disponibilidad general:</strong> 24 horas, 7 días a la semana</li>
+              <li><strong>Soporte técnico:</strong> Lunes a viernes de 8:00 AM a 5:00 PM</li>
+              <li><strong>Mantenimientos programados:</strong> Notificados con 48 horas de anticipación</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">6.2. Interrupciones del
+              Servicio:</h3>
+            <p>El jardín infantil se reserva el derecho de interrumpir el servicio por:</p>
+            <ul>
+              <li>Mantenimientos preventivos y correctivos</li>
+              <li>Actualizaciones de seguridad</li>
+              <li>Fuerza mayor o caso fortuito</li>
+              <li>Problemas técnicos imprevistos</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-copyright me-2"></i>7. Propiedad Intelectual</h2>
+
+            <p>Todos los derechos de propiedad intelectual sobre el sistema Infojis pertenecen al Jardín Infantil
+              Sonrisas, incluyendo:</p>
+            <ul>
+              <li><strong>Software:</strong> Código fuente, algoritmos, bases de datos</li>
+              <li><strong>Contenido:</strong> Textos, imágenes, documentos, etc</li>
+              <li><strong>Marca:</strong> Nombre "Infojis" y elementos gráficos asociados</li>
+              <li><strong>Metodología:</strong> Procesos y procedimientos del sistema</li>
+            </ul>
+
+            <div class="terms-highlight">
+              <strong>Licencia de Uso:</strong> Los usuarios reciben únicamente una licencia limitada, no exclusiva y
+              revocable para usar el sistema conforme a estos términos, sin derecho a reproducir, modificar o distribuir
+              el software.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-handshake me-2"></i>8. Obligaciones de las Partes</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">8.1. Obligaciones del
+              Jardín Infantil:</h3>
+            <ul>
+              <li>Proporcionar acceso al sistema durante los horarios establecidos</li>
+              <li>Mantener medidas de seguridad adecuadas para proteger la información</li>
+              <li>Realizar respaldos regulares de la información</li>
+              <li>Proporcionar soporte técnico durante el horario de atención</li>
+              <li>Notificar sobre cambios significativos en el sistema</li>
+              <li>Cumplir con la normativa de protección de datos personales</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">8.2. Obligaciones de los
+              Usuarios:</h3>
+            <div class="obligations-box">
+              <ul style="margin-bottom: 0;">
+                <li>Usar el sistema de manera responsable y conforme a estos términos</li>
+                <li>Proporcionar información veraz y mantenerla actualizada</li>
+                <li>Proteger sus credenciales de acceso</li>
+                <li>Notificar inmediatamente sobre incidentes de seguridad</li>
+                <li>Respetar los derechos de propiedad intelectual</li>
+                <li>No interferir con el funcionamiento normal del sistema</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-ban me-2"></i>9. Suspensión y Terminación</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">9.1. Causales de
+              Suspensión:</h3>
+            <ul>
+              <li>Incumplimiento de estos términos y condiciones</li>
+              <li>Uso indebido o no autorizado del sistema</li>
+              <li>Actividades que pongan en riesgo la seguridad del sistema</li>
+              <li>Solicitud del propio usuario</li>
+              <li>Finalización de la relación contractual con el jardín infantil</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">9.2. Procedimiento:</h3>
+            <ul>
+              <li>Notificación previa por escrito (salvo casos graves)</li>
+              <li>Oportunidad de corrección cuando sea aplicable</li>
+              <li>Respaldo de información antes de la terminación definitiva</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-exclamation-triangle me-2"></i>10. Limitación de Responsabilidad</h2>
+
+            <p>El Jardín Infantil Sonrisas no será responsable por:</p>
+            <ul>
+              <li>Daños derivados del mal uso del sistema por parte del usuario</li>
+              <li>Pérdida de información causada por acciones del usuario</li>
+              <li>Interrupciones del servicio por causas ajenas a su control</li>
+              <li>Problemas de conectividad del usuario</li>
+              <li>Uso no autorizado de credenciales de acceso</li>
+            </ul>
+
+            <div class="warning-box">
+              <strong><i class="fas fa-info-circle me-2"></i>Importante:</strong> La responsabilidad del jardín infantil
+              se limita al valor de los servicios educativos contratados, y en ningún caso incluirá daños indirectos.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-user-shield me-2"></i>11. Protección de Menores</h2>
+
+            <p>Dada la naturaleza educativa de nuestros servicios y el trabajo con menores de edad:</p>
+            <ul>
+              <li>Todo el personal tiene formación en protección infantil</li>
+              <li>Se cumple estrictamente con la normativa de protección a la infancia</li>
+              <li>Cualquier contenido inapropiado es reportado inmediatamente a las autoridades pertinentes</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-edit me-2"></i>12. Modificaciones de los Términos</h2>
+
+            <p>El Jardín Infantil Sonrisas se reserva el derecho de modificar estos términos cuando:</p>
+            <ul>
+              <li>Cambien las funcionalidades del sistema</li>
+              <li>Se requiera cumplir con nueva normativa legal</li>
+              <li>Sea necesario mejorar la seguridad o el servicio</li>
+              <li>Se actualicen las políticas institucionales</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">12.1. Proceso de
+              Notificación:</h3>
+            <ul>
+              <li>Notificación por correo electrónico con 30 días de anticipación</li>
+              <li>Publicación en el sistema</li>
+              <li>Para cambios sustanciales, se requerirá nueva aceptación</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-balance-scale me-2"></i>13. Resolución de Conflictos</h2>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">13.1. Procedimiento de
+              Reclamaciones:</h3>
+            <ol>
+              <li><strong>Contacto directo:</strong> Comunicación con el servicio de soporte</li>
+              <li><strong>Escalamiento:</strong> Elevación a dirección académica si es necesario</li>
+              <li><strong>Mediación:</strong> Búsqueda de solución amigable</li>
+              <li><strong>Instancias legales:</strong> Como último recurso</li>
+            </ol>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">13.2. Jurisdicción:</h3>
+            <p>Para efectos legales, las partes se someten a la jurisdicción de los tribunales de Valledupar, Cesar,
+              Colombia, renunciando expresamente a cualquier otro fuero que pudiera corresponder.</p>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-globe me-2"></i>14. Ley Aplicable</h2>
+            <p>Estos términos y condiciones se rigen por las leyes de la República de Colombia, incluyendo:</p>
+            <ul>
+              <li>Código de Comercio Colombiano</li>
+              <li>Ley 1341 de 2009 (TIC)</li>
+              <li>Ley 1581 de 2012 (Protección de Datos)</li>
+              <li>Normativa educativa vigente</li>
+              <li>Código de la Infancia y la Adolescencia</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-phone me-2"></i>15. Soporte y Contacto</h2>
+            <div class="contact-info">
+              <p><strong>Soporte Técnico - Sistema Infojis</strong></p>
+              <p><strong>Jardín Infantil Sonrisas</strong></p>
+              <p><i class="fas fa-envelope me-2"></i><strong>Correo:</strong> <a
+                  href="mailto:jardininfantilsonrisas2023@gmail.com"
+                  style="color: #fd7e14; text-decoration: none;">jardininfantilsonrisas2023@gmail.com</a></p>
+              <p><i class="fas fa-phone me-2"></i><strong>Teléfono:</strong> +57 300 149 8933</p>
+              <p><i class="fas fa-map-marker-alt me-2"></i><strong>Dirección:</strong> Urbanización Luis Carlos Galán Mz
+                E casa 9, Valledupar</p>
+              <p><i class="fas fa-clock me-2"></i><strong>Horario:</strong> Lunes a viernes de 8:00 AM a 5:00 PM</p>
+            </div>
+          </div>
+
+          <!-- Pie de página del documento -->
+          <div class="pdf-footer">
+            <hr style="border-color: #fd7e14; margin: 20px 0;">
+            <p><strong>INFOJIS - Términos y Condiciones de Uso</strong></p>
+            <p>Jardín Infantil Sonrisas | Centro Biotecnológico del Caribe | Valledupar, Cesar, Colombia</p>
+            <p>Este documento cumple con la legislación colombiana aplicable</p>
+            <p style="font-size: 10px; margin-top: 15px;">
+              Documento generado automáticamente el <span id="generation-date"></span> | Versión 1.0<br>
+              Para soporte técnico: <a href="mailto:jardininfantilsonrisas2023@gmail.com"
+                style="color: #fd7e14;">jardininfantilsonrisas2023@gmail.com</a> |
+              Al usar el sistema, usted acepta estos términos y condiciones
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Botón flotante de descarga -->
+  <button class="btn-download position-fixed shadow-lg rounded-circle" aria-label="Descargar PDF" id="downloadPdf">
+    <i class="fas fa-download"></i>
+  </button>
+
+  <footer class="py-4 mt-5">
+    <div class="container text-center">
+      <p class="mb-0">&copy; <span id="year"></span> Infojis. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Contenedor de Toast -->
+  <div class="toast-container">
+    <div id="pdfToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          ✅ PDF listo y descargado.
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/public/terminos-condiciones.js"></script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">          
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login-transiciones.css') }}">
+</head>
+<body>    
+
+<!-- Contenedor de Toasts para notificaciones -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+    <!-- Mensajes Flasheados -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="toast align-items-center text-bg-{{ category }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            {{ message }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Errores del Formulario -->
+    {% if form.errors %}
+        {% for field, errors in form.errors.items() %}
+            {% for error in errors %}
+                <div class="toast align-items-center text-bg-danger border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            {{ error }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+</div>
+
+<div class="login-container mt-5">
+
+    <div class="d-flex justify-content-end mb-10">
+        <a href="{{ url_for('auth.login') }}" class="back-link" aria-label="Volver atrás">
+            <i class="fas fa-arrow-left me-2"></i> Volver
+        </a>
+    </div>
+
+    <header class="login-header text-center mb-4">
+        <h1 class="login-title">Restablecer Contraseña</h1>
+        <p class="login-subtitle">Ingresa tu correo electrónico y te enviaremos un enlace para recuperar tu cuenta.</p>
+    </header>
+    
+    <form method="POST" action="{{ url_for('auth.request_reset') }}" novalidate>    
+        {{ form.hidden_tag() }}
+        <div class="form-floating mb-3">
+            {{ form.email(class="form-control", id="email", placeholder="Correo electrónico") }}
+            <label for="email">Correo electrónico</label>
+        </div>
+        <div class="d-grid">
+            {{ form.submit(class="btn btn-login") }}
+        </div>
+    </form>
+</div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js" defer></script>
+    
+    <!-- Script para inicializar los Toasts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            toastElList.forEach(function (toastEl) {
+                const toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 5000
+                });
+                toast.show();
+            });
+        });
+    </script>
+</body>
+</html>

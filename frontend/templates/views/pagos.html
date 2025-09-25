@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">          
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../static/css/modo_oscuro.css">
+</head>
+<body>
+<div class="app-container">
+     <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+        {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+        {% endif %}
+    </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+   <!-- Contenido Principal -->
+    <main class="main-content" id="main-content">
+        {% include 'partials/messages-flask.html' %}
+
+        {% include 'partials/header.html' %} 
+        <!-- Contenido Principal -->
+        <div class="container-fluid py-4">
+                    <!-- Filtros -->
+                    
+                    <form method="GET" action="{{ url_for('pago.listar_pagos') }}">
+                        {{ form.hidden_tag() }}
+
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-body">
+                                <div class="row g-3 align-items-end">
+                                    
+                                    <div class="col-md-3">
+                                        <label class="form-label">Estudiante:</label>
+                                        {{ form.nombre(class="form-control", id="filtro-nombre", placeholder="Nombre del estudiante") }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Grado:</label>
+                                        {{ form.curso(class="form-select", id="select-curso") }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Estado:</label>
+                                        {{ form.estado(class="form-select", id="filtro-estado") }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-filter w-100" type="submit">
+                                            <i class="fas fa-filter me-1"></i> Filtrar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+
+                    <!-- Tabla de Pagos -->
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-0">Historial de Pagos</h5>
+                                <div class="text-muted small">
+                                    <span><i class="fas fa-money-check-alt me-1 text-primary"></i>Total registros: {{ pagos.total }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('pago.exportar_pagos', curso=request.args.get('curso'), estado=request.args.get('estado'), nombre=request.args.get('nombre')) }}"
+                                class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                                </a>
+                                {% if current_user.rol == 'admin' %}
+                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalPago">
+                                    <i class="fas fa-plus-circle me-1"></i> Nuevo Pago
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Foto</th>
+                                            <th>Apellidos</th>
+                                            <th>Nombres</th>
+                                            <th>Grado</th>
+                                            <th>Concepto</th>
+                                            <th>Monto</th>
+                                            <th>Método</th>
+                                            <th>Fecha</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if not pagos.items %}
+                                            <tr>
+                                                <td colspan="11" class="text-center text-muted">
+                                                    <div class="d-flex flex-column align-items-center">
+                                                        <i class="fas fa-info-circle fa-2x mb-2"
+                                                            style="font-size: 2rem;"></i>
+                                                        <p class="mb-0">No hay pagos registradas.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% else %}
+                                        {% for p in pagos.items %}
+                                        <tr>
+                                            <td>{{ loop.index + (pagos.page - 1) * pagos.per_page }}</td>
+                                            <td>
+                                                {% if p.matricula.foto %}
+                                                    <img src="{{ url_for('static', filename='uploads/profiles/' + p.matricula.foto) }}"
+                                                        alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                                {% else %}
+                                                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                        alt="Foto por defecto" class="rounded-circle" style="width:40px; height:40px;">
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ p.matricula.apellidos }}</td>
+                                            <td>{{ p.matricula.nombres }}</td>
+                                            <td>{{ p.curso.nombre }}</td>
+                                            <td>{{ p.concepto }}</td>
+                                            <td>${{ '{:,.0f}'.format(p.monto) }}</td>
+                                            <td>{{ p.metodo_pago }}</td>
+                                            <td>{{ p.fecha_pago.strftime('%d/%m/%Y') }}</td>
+                                            <td><span class="badge bg-{{ 'success' if p.estado == 'pagado' else 'badge bg-danger' }}">{{ p.estado }}</span></td>
+                                            <td>
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-info btn-ver-detalles"
+                                                            data-id="{{ p.id }}"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#modalVerDetallesPago">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+
+                                                {% if current_user.rol == 'admin' %}
+                                                    <button class="btn btn-sm btn-outline-warning btn-editar-pago"
+                                                        data-id="{{ p.id }}"
+                                                        data-id-curso="{{ p.id_curso }}"
+                                                        data-id-matricula="{{ p.id_matricula }}"
+                                                        data-concepto="{{ p.concepto }}"
+                                                        data-monto="{{ p.monto }}"
+                                                        data-metodo="{{ p.metodo_pago }}"
+                                                        data-fecha="{{ p.fecha_pago }}"
+                                                        data-estado="{{ p.estado }}"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalEditarPago">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+
+                                                    <!-- Botón Eliminar Pago -->
+                                                    {% if p.estado.lower() == 'pagado' %}
+                                                        <form action="{{ url_for('pago.eliminar_pago', id=p.id) }}" method="POST" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-outline-danger btn-eliminar-pago"
+                                                                    data-id="{{ p.id }}"
+                                                                    data-nombre="{{ p.matricula.nombres }} {{ p.matricula.apellidos }}">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% else %}
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-secondary"
+                                                                title="Solo se pueden eliminar pagos pagados"
+                                                                disabled>
+                                                            <i class="fas fa-ban"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small">
+                                    <i class="fas fa-money-check-alt me-1 text-primary"></i>
+                                    Total: {{ pagos.total }} registros |
+                                    Mostrando:
+                                    {{ (pagos.page - 1) * pagos.per_page + 1 }} -
+                                    {{ pagos.page * pagos.per_page if pagos.page * pagos.per_page }}
+                                </div>
+
+                                <nav aria-label="Paginación">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item {% if not pagos.has_prev %}disabled{% endif %}">
+                                            <a class="page-link"
+                                            href="{{ url_for('pago.listar_pagos', page=pagos.prev_num, curso=request.args.get('curso'), estado=request.args.get('estado'), estudiante=request.args.get('estudiante')) }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+
+                                        {% for page_num in pagos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                            {% if page_num %}
+                                                <li class="page-item {% if page_num == pagos.page %}active{% endif %}">
+                                                    <a class="page-link"
+                                                    href="{{ url_for('pago.listar_pagos', page=page_num, curso=request.args.get('curso'), estado=request.args.get('estado'), estudiante=request.args.get('estudiante')) }}">
+                                                        {{ page_num }}
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        <li class="page-item {% if not pagos.has_next %}disabled{% endif %}">
+                                            <a class="page-link"
+                                            href="{{ url_for('pago.listar_pagos', page=pagos.next_num, curso=request.args.get('curso'), estado=request.args.get('estado'), estudiante=request.args.get('estudiante')) }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>           
+    </main>
+</div>
+
+<!-- Modal Nuevo Pago -->
+<div class="modal fade" id="modalPago" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('pago.crear_pago') }}" class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Registrar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                
+                <div class="mb-3">
+                    <label>Grado:</label>
+                    <select class="form-select" name="id_curso" id="select-pagos-curso" required>
+                        <option disabled selected>Seleccionar</option>
+                        {% for c in cursos %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Estudiante:</label>
+                    <select class="form-select" name="id_matricula" id="select-pagos-matricula" required>
+                            <option disabled selected>Seleccionar un Grado</option>
+                        </select>
+
+                    <div class="mt-2 text-center">
+                      <img id="preview-foto" src="" class="rounded-circle border" style="width: 80px; height: 80px; display: none;">
+                    </div>
+
+                </div>
+
+                <!-- Concepto -->
+                <div class="mb-3">
+                    <label>Concepto:</label>
+                    <select class="form-select" name="concepto" id="concepto" required>
+                        <option disabled selected>Seleccionar</option>
+                        <option value="mensualidad">Mensualidad</option>
+                        <option value="matricula">Matrícula</option>
+                        <option value="derecho a grado">Derecho a grado</option>
+                    </select>
+                </div>
+
+
+                <!-- Monto -->
+                <div class="mb-3">
+                    <label>Monto:</label>
+                    <input type="number" class="form-control" name="monto" min="0" required>
+                </div>
+
+                <!-- Método de pago -->
+                <div class="mb-3">
+                    <label>Método de Pago:</label>
+                    <select class="form-select" name="metodo_pago" required>
+                        <option disabled selected>Seleccionar</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="consignacion">Consignacion</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <!-- Fecha de pago -->
+                <div class="mb-3">
+                    <label>Fecha de Pago:</label>
+                    <input type="date" class="form-control" name="fecha_pago" required>
+                </div>
+
+                <!-- Estado -->
+                <div class="mb-3">
+                    <label>Estado:</label>
+                    <select class="form-select" name="estado" required>
+                        <option value="pagado">Pagado</option>
+                        <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-outline-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal Editar Pago -->
+<div class="modal fade" id="modalEditarPago" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="" id="formEditarPago" class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Editar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Curso -->
+                <div class="mb-3">
+                    <label>Grado:</label>
+                    <select name="id_curso" id="editar-id-curso" class="form-select" disabled>
+                        {% for c in cursos %}
+                        <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="id_curso" id="editar-id-curso-hidden">
+                </div>
+
+                <!-- Estudiante -->
+                <div class="mb-3">
+                    <label>Estudiante:</label>
+                    <select name="id_matricula" id="editar-id-matricula" class="form-select" disabled>
+                        <option>Seleccionar</option>
+                    </select>
+                    <input type="hidden" name="id_matricula" id="editar-id-matricula-hidden">
+                </div>
+
+                <!-- Concepto -->
+                <div class="mb-3">
+                    <label>Concepto:</label>
+                    <select class="form-select" name="concepto" id="editar-concepto" required>
+                        <option disabled selected>Seleccionar</option>
+                        <option value="mensualidad">Mensualidad</option>
+                        <option value="matricula">Matrícula</option>
+                        <option value="derecho a grado">Derecho a grado</option>
+                    </select>
+                </div>
+
+                <!-- Monto -->
+                <div class="mb-3">
+                    <label>Monto:</label>
+                    <input type="number" class="form-control" name="monto" id="editar-monto" min="0" required>
+                </div>
+
+                <!-- Método de pago -->
+                <div class="mb-3">
+                    <label>Método de Pago:</label>
+                    <select class="form-select" name="metodo_pago" id="editar-metodo" required>
+                        <option disabled selected>Seleccionar</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="consignacion">Consignación</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <!-- Fecha de pago -->
+                <div class="mb-3">
+                    <label>Fecha de Pago:</label>
+                    <input type="date" class="form-control" name="fecha_pago" id="editar-fecha" required>
+                </div>
+
+                <!-- Estado -->
+                <div class="mb-3">
+                    <label>Estado:</label>
+                    <select class="form-select" name="estado" id="editar-estado" required>
+                        <option value="pagado">Pagado</option>
+                        <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-outline-primary">Actualizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal Detalles de Pago -->
+<div class="modal fade" id="modalVerDetallesPago" tabindex="-1" aria-labelledby="detalleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Comprobante de Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="iframe-comprobante" src="" width="100%" height="600px" frameborder="0"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a id="btn-descargar-comprobante" class="btn btn-primary" download>
+                    <i class="fas fa-download"></i>
+                </a>
+                <a id="btn-enviar-whatsapp" class="btn btn-success d-none" target="_blank">
+                    <i class="fab fa-whatsapp"></i> 
+                </a>
+                <!-- Nuevo botón para enviar por correo -->
+                <button id="btn-enviar-correo" class="btn btn-danger">
+                    <i class="fas fa-envelope"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+<script src="{{ url_for('static', filename='js/views/pagos.js') }}"></script>
+</body>
+</html>
