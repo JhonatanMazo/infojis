@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+    <style>
+        
+        .badge {
+            font-size: 0.85em;
+            padding: 0.5em 0.75em;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        .form-check-label {
+            font-weight: normal;
+        }
+        .toast {
+            max-width: 400px;
+        }
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .app-container {
+            background-color: #f5f7fa;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: none;
+        }
+        .modal-content {
+            border-radius: 10px;
+        }
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .progress {
+            height: 8px;
+        }
+        .table-responsive {
+            min-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .card-header .btn {
+                margin-top: 10px;
+                width: 100%;
+            }
+            .card-header > div {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+        
+        /* Estilos mejorados para modales - Color naranja principal */
+        
+        .modal-header-success {
+            background-color: #ff6600; /* Naranja principal */
+            color: white;
+        }
+        .modal-header-info {
+            background-color: #ff6600; /* Naranja principal */
+            color: white;
+        }
+        .modal-estudiante-info {
+            background-color: #fff3e6; /* Fondo naranja claro */
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff6600; /* Borde naranja */
+        }
+        .modal-paginator {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            z-index: 10;
+        }
+        .badge-estado {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+        .calificacion-aprobada {
+            color: #198754;
+            font-weight: bold;
+        }
+        .calificacion-reprobada {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .asistencia-presente {
+            color: #198754;
+        }
+        .asistencia-ausente {
+            color: #dc3545;
+        }
+        .asistencia-justificada {
+            color: #ff6600; /* Naranja principal */
+            font-weight: bold;
+        }
+        .info-card {
+            border-left: 4px solid #ff6600; /* Naranja principal */
+            transition: all 0.2s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .table-modal {
+            font-size: 0.9rem;
+        }
+        .table-modal th {
+            background-color: #fff3e6; /* Fondo naranja claro para encabezados */
+            color: #ff6600; /* Texto naranja */
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+        
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+            
+            <!-- Filtros -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form id="formFiltros" method="GET" action="{{ url_for('academico.index') }}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Grado:</label>
+                                    <select class="form-select" id="select-curso" name="curso" required>
+                                        <option value="" selected disabled>Seleccione un curso</option>
+                                        {% for curso in cursos %}
+                                            <option value="{{ curso.id }}" {% if curso_seleccionado == curso.id %}selected{% endif %}>{{ curso.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Asignatura:</label>
+                                    <select class="form-select" id="select-asignatura" name="asignatura" required>
+                                        <option value="" selected disabled>Seleccione una asignatura</option>
+                                        {% for asignatura in asignaturas %}
+                                            <option value="{{ asignatura.id }}" {% if asignatura_seleccionada == asignatura.id %}selected{% endif %}>{{ asignatura.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Tipo de Documento:</label>
+                                    <select class="form-select" id="select-tipo" name="tipo" required>
+                                        <option value="" {% if not tipo_seleccionado %}selected{% endif %} disabled>Seleccione un tipo</option>
+                                        <option value="asistencia" {% if tipo_seleccionado == 'asistencia' %}selected{% endif %}>Asistencia</option>                                        <option value="calificaciones" {% if tipo_seleccionado == 'calificaciones' %}selected{% endif %}>Calificaciones</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100 w-md-auto">
+                                        <i class="fas fa-filter me-1"></i> Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de Datos Académicos -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h5 class="card-title mb-0">
+                                {% if tipo_seleccionado == 'asistencia' %}
+                                    Control de Asistencias
+                                {% else %}
+                                    Calificaciones Académicas
+                                {% endif %}
+                            </h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-users me-1" style="color: #ff6600;"></i><strong>Estudiantes: </strong><span id="total-estudiantes">{{ estudiantes.total if estudiantes else 0 }}</span></span>
+                                <span class="ms-3"><i class="fas fa-book me-1" style="color: #ff6600;"></i><strong>Asignatura: </strong>
+                                    {% if asignatura_seleccionada_obj %}
+                                        {{ asignatura_seleccionada_obj.nombre }}
+                                    {% else %}
+                                        Todas
+                                    {% endif %}
+                                </span>
+                                <span class="ms-3"><i class="fas fa-calendar me-1" style="color: #ff6600;"></i><strong>Periodo: </strong>
+                                    {{ active_config.periodo_nombre }}
+                                </span>
+                                {% if tipo_seleccionado == 'calificaciones' %}
+                                <span class="ms-3"><i class="fas fa-chart-line me-1" style="color: #ff6600;"></i><strong>Nivel Aprobación: </strong>
+                                    {{ config_libro.nota_basico|round(1) }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-12 col-md-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="student-search-input"
+                                        name="busqueda" value="{{ request.args.get('busqueda', '') }}"
+                                        placeholder="Buscar por nombre" form="formFiltros">
+                                </div>
+                            </div>
+                            <!-- Botón de Exportar PDF -->
+
+
+
+                            <div class="col-12 col-md-5">
+                                <a href="{{ url_for('academico.exportar_datos', curso=curso_seleccionado, asignatura=asignatura_seleccionada, tipo=tipo_seleccionado) }}" 
+                                class="btn btn-outline-secondary" 
+                                target="_self"
+                                {% if not curso_seleccionado or (tipo_seleccionado == 'asistencia' and not asignatura_seleccionada) %}disabled{% endif %}>
+                                Exportar PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <!-- Cabecera de Asistencias (se muestra si es el tipo seleccionado) -->
+                                    {% if tipo_seleccionado == 'asistencia' %}
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th>Asistencia</th>
+                                        <th>Inasistencia</th>
+                                        <th>Justificada</th>
+                                        <th>Observaciones</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>                                    
+                                    <!-- Cabecera de Calificaciones (se muestra si es el tipo seleccionado) -->
+                                    {% elif tipo_seleccionado == 'calificaciones' %}
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th class="text-center">Promedio</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                    {% else %}
+                                    <!-- Cabecera por defecto si no hay tipo seleccionado -->
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th>Curso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                    {% endif %}
+                                </thead>
+                                <tbody id="tabla-estudiantes">
+                                    <!-- Contenido de Asistencias -->
+                                    {% if tipo_seleccionado == 'asistencia' and curso_seleccionado and asignatura_seleccionada %}
+                                    {% for estudiante in estudiantes.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (estudiantes.page-1)*estudiantes.per_page }}</td>
+                                        <td>
+                                            {% if estudiante.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + estudiante.foto) }}" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="{{ url_for('static', filename='img/default-profile.png') }}" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ estudiante.apellidos }}</td>
+                                        <td>{{ estudiante.nombres }}</td>
+                                        <td>{{ estudiante.documento }}</td>
+                                        <td class="text-success fw-bold">
+                                            {% if estudiante.id in estadisticas_asistencia %}
+                                                {{ estadisticas_asistencia[estudiante.id].presente }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-danger fw-bold">
+                                            {% if estudiante.id in estadisticas_asistencia %}
+                                                {{ estadisticas_asistencia[estudiante.id].ausente }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-warning fw-bold">
+                                            {% if estudiante.id in estadisticas_asistencia %}
+                                                {{ estadisticas_asistencia[estudiante.id].justificado }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if estudiante.id in observaciones_count and observaciones_count[estudiante.id] > 0 %}
+                                            <span class="badge bg-info">{{ observaciones_count[estudiante.id] }}</span>
+                                            {% else %}
+                                            <span class="text-muted">Sin observaciones</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info btn-ver-observaciones" 
+                                                    data-estudiante-id="{{ estudiante.id }}"
+                                                    data-estudiante-nombre="{{ estudiante.nombres }} {{ estudiante.apellidos }}"
+                                                    data-estudiante-documento="{{ estudiante.documento }}"
+                                                    data-estudiante-foto="{% if estudiante.foto %}{{ url_for('static', filename='uploads/profiles/' + estudiante.foto) }}{% else %}default{% endif %}"
+                                                    data-estudiante-curso="{{ curso_seleccionado_obj.nombre if curso_seleccionado_obj else 'N/A' }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4">No hay estudiantes con los filtros seleccionados</td>
+                                    </tr>
+                                    {% endfor %}                                    
+                                    <!-- Contenido de Calificaciones -->
+                                    {% elif tipo_seleccionado == 'calificaciones' and curso_seleccionado %}
+                                    {% for estudiante in estudiantes.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (estudiantes.page-1)*estudiantes.per_page }}</td>
+                                        <td>
+                                            {% if estudiante.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + estudiante.foto) }}" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="{{ url_for('static', filename='img/default-profile.png') }}" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ estudiante.apellidos }}</td>
+                                        <td>{{ estudiante.nombres }}</td>
+                                        <td>{{ estudiante.documento }}</td>
+
+                                        <td class="text-center fw-bold">
+                                            {% if estudiante.id in promedios_estudiantes %}
+                                                <span class="badge {% if promedios_estudiantes[estudiante.id] >= config_libro.nota_basico %}bg-success{% else %}bg-danger{% endif %}">
+                                                    {{ promedios_estudiantes[estudiante.id] }}
+                                                </span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info btn-ver-calificaciones" 
+                                                    data-estudiante-id="{{ estudiante.id }}"
+                                                    data-estudiante-nombre="{{ estudiante.nombres }} {{ estudiante.apellidos }}"
+                                                    data-estudiante-documento="{{ estudiante.documento }}"
+                                                    data-estudiante-foto="{% if estudiante.foto %}{{ url_for('static', filename='uploads/profiles/' + estudiante.foto) }}{% else %}default{% endif %}"
+                                                    data-estudiante-curso="{{ curso_seleccionado_obj.nombre if curso_seleccionado_obj else 'N/A' }}"
+                                                    data-estudiante-promedio="{% if estudiante.id in promedios_estudiantes %}{{ promedios_estudiantes[estudiante.id] }}{% else %}0{% endif %}"
+                                                    data-estudiante-estado="{% if estudiante.id in promedios_estudiantes and promedios_estudiantes[estudiante.id] >= config_libro.nota_basico %}Aprobado{% else %}No Aprobado{% endif %}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">No hay estudiantes con los filtros seleccionados</td>
+                                    </tr>
+                                    {% endfor %}
+                                    <!-- Mensaje por defecto si no hay filtros -->
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted p-4">
+                                            {% if not curso_seleccionado %}
+                                            <i class="fas fa-info-circle fa-2x mb-2"
+                                                style="font-size: 2rem;"></i>
+                                            <p>No hay estudiantes para mostrar. Aplique filtros para ver los resultados.</p>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if curso_seleccionado and ((tipo_seleccionado == 'asistencia' and asignatura_seleccionada) or tipo_seleccionado == 'calificaciones') %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ estudiantes.first }} a {{ estudiantes.last }} de {{ estudiantes.total }} registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    {% if estudiantes.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('academico.index', page=estudiantes.prev_num, curso=curso_seleccionado, asignatura=asignatura_seleccionada, tipo=tipo_seleccionado, busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                    </li>
+                                    {% endif %}
+
+                                    {% for page_num in estudiantes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                        {% if page_num %}
+                                            {% if page_num == estudiantes.page %}
+                                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                            {% else %}
+                                            <li class="page-item"><a class="page-link" href="{{ url_for('academico.index', page=page_num, curso=curso_seleccionado, asignatura=asignatura_seleccionada, tipo=tipo_seleccionado, busqueda=request.args.get('busqueda', '')) }}">{{ page_num }}</a></li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if estudiantes.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('academico.index', page=estudiantes.next_num, curso=curso_seleccionado, asignatura=asignatura_seleccionada, tipo=tipo_seleccionado, busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Modal Observaciones (Mejorado con estructura de libro final) -->
+            <div class="modal fade" id="modalObservaciones" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header modal-header-info">
+                            <h5 class="modal-title">
+                                <i class="fas fa-sticky-note me-2"></i> Observaciones del Estudiante
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Información del estudiante -->
+                            <div class="modal-estudiante-info">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <img id="modal-observaciones-foto" src="" class="student-avatar" alt="Foto estudiante">
+                                    </div>
+                                    <div class="col">
+                                        <h6 id="modal-observaciones-nombre" class="mb-1"></h6>
+                                        <p class="mb-1 text-muted" id="modal-observaciones-documento"></p>
+                                        <p class="mb-0"><strong>Grado:</strong> <span id="modal-observaciones-curso"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Información del período y asignatura -->
+                            <div class="alert alert-info py-2 mb-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><strong>Período:</strong> {{ active_config.periodo_nombre }}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small><strong>Asignatura:</strong> 
+                                            {% if asignatura_seleccionada_obj %}
+                                                {{ asignatura_seleccionada_obj.nombre }}
+                                            {% else %}
+                                                Todas
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="mb-3"><i class="fas fa-list me-2"></i> Historial de Observaciones</h6>
+                            <div style="max-height: 350px; overflow-y: auto;">
+                                <div id="contenedor-observaciones">
+                                    <!-- Las observaciones se cargarán via AJAX -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-paginator">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small" id="info-paginacion-observaciones">
+                                    Mostrando 0 de 0 registros
+                                </div>
+                                <nav aria-label="Paginación de observaciones">
+                                    <ul class="pagination pagination-sm mb-0" id="pagination-observaciones">
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Calificaciones (Mejorado con estructura de libro final) -->
+            <div class="modal fade" id="modalCalificaciones" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header modal-header-success">
+                            <h5 class="modal-title">
+                                <i class="fas fa-graduation-cap me-2"></i> Calificaciones del Estudiante
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Información del estudiante -->
+                            <div class="modal-estudiante-info">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <img id="modal-calificaciones-foto" src="" class="student-avatar" alt="Foto estudiante">
+                                    </div>
+                                    <div class="col">
+                                        <h6 id="modal-calificaciones-nombre" class="mb-1"></h6>
+                                        <p class="mb-1 text-muted" id="modal-calificaciones-documento"></p>
+                                        <p class="mb-0"><strong>Grado:</strong> <span id="modal-calificaciones-curso"></span></p>
+                                    </div>
+                                    <div class="col-auto text-center">
+                                        <div class="fw-bold fs-5" id="modal-calificaciones-promedio"></div>
+                                        <span class="badge" id="modal-calificaciones-estado"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Información del período y nivel de aprobación -->
+                            <div class="alert alert-info py-2 mb-3">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small><strong>Período:</strong> {{ active_config.periodo_nombre }}</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small><strong>Nivel de Aprobación:</strong> {{ config_libro.nota_basico|round(1) }}</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small><strong>Asignatura:</strong> 
+                                            {% if asignatura_seleccionada_obj %}
+                                                {{ asignatura_seleccionada_obj.nombre }}
+                                            {% else %}
+                                                Todas
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <h6 class="mb-3"><i class="fas fa-list me-2"></i> Historial de Calificaciones</h6>
+                            <div style="max-height: 350px; overflow-y: auto;">
+                                <div id="contenedor-calificaciones">
+                                    <!-- Las calificaciones se cargarán via AJAX -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-paginator">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small" id="info-paginacion-calificaciones">
+                                    Mostrando 0 de 0 registros
+                                </div>
+                                <nav aria-label="Paginación de calificaciones">
+                                    <ul class="pagination pagination-sm mb-0" id="pagination-calificaciones">
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script>
+    $(document).ready(function() {
+        // Cargar asignaturas cuando se selecciona un curso
+        $('#select-curso').on('change', function() {
+            const cursoId = $(this).val();
+            if (cursoId) {
+                $.ajax({
+                    url: "{{ url_for('calificacion.obtener_asignaturas') }}",
+                    type: "GET",
+                    data: { curso_id: cursoId },
+                    success: function(asignaturas) {
+                        const select = $('#select-asignatura');
+                        select.empty();
+                        select.append('<option value="" selected disabled>Seleccione una asignatura</option>');
+                        
+                        asignaturas.forEach(function(asignatura) {
+                            select.append($('<option>', {
+                                value: asignatura.id,
+                                text: asignatura.nombre
+                            }));
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'No se pudieron cargar las asignaturas', 'error');
+                    }
+                });
+            }
+        });
+
+        // Variables globales para almacenar el estado de paginación
+        let estudianteObservacionesId = null;
+        let estudianteCalificacionesId = null;
+        let paginaActualObservaciones = 1;
+        let paginaActualCalificaciones = 1;
+
+        // Abrir modal de observaciones
+        $('.btn-ver-observaciones').on('click', function() {
+            estudianteObservacionesId = $(this).data('estudiante-id');
+            const estudianteNombre = $(this).data('estudiante-nombre');
+            const estudianteDocumento = $(this).data('estudiante-documento');
+            const estudianteFoto = $(this).data('estudiante-foto');
+            const estudianteCurso = $(this).data('estudiante-curso');
+            
+            // Configurar información del estudiante en el modal
+            $('#modal-observaciones-nombre').text(estudianteNombre);
+            $('#modal-observaciones-documento').text('Documento: ' + estudianteDocumento);
+            
+            // Corregir el problema del grado (N/A)
+            if (estudianteCurso && estudianteCurso !== 'N/A') {
+                $('#modal-observaciones-curso').text(estudianteCurso);
+            } else {
+                // Obtener el nombre del curso desde el select
+                const cursoNombre = $('#select-curso option:selected').text();
+                $('#modal-observaciones-curso').text(cursoNombre);
+            }
+            
+            // Configurar foto
+            if (estudianteFoto !== 'default') {
+                $('#modal-observaciones-foto').attr('src', estudianteFoto);
+            } else {
+                $('#modal-observaciones-foto').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg==');
+            }
+            
+            paginaActualObservaciones = 1;
+            cargarObservaciones(estudianteObservacionesId, paginaActualObservaciones);
+            $('#modalObservaciones').modal('show');
+        });
+
+        // Abrir modal de calificaciones
+        $(document).on('click', '.btn-ver-calificaciones', function() {
+            estudianteCalificacionesId = $(this).data('estudiante-id');
+            const estudianteNombre = $(this).data('estudiante-nombre');
+            const estudianteDocumento = $(this).data('estudiante-documento');
+            const estudianteFoto = $(this).data('estudiante-foto');
+            const estudianteCurso = $(this).data('estudiante-curso');
+            const estudiantePromedio = $(this).data('estudiante-promedio');
+            const estudianteEstado = $(this).data('estudiante-estado');
+            
+            // Configurar información del estudiante en el modal
+            $('#modal-calificaciones-nombre').text(estudianteNombre);
+            $('#modal-calificaciones-documento').text('Documento: ' + estudianteDocumento);
+            
+            // Corregir el problema del grado (N/A)
+            if (estudianteCurso && estudianteCurso !== 'N/A') {
+                $('#modal-calificaciones-curso').text(estudianteCurso);
+            } else {
+                // Obtener el nombre del curso desde el select
+                const cursoNombre = $('#select-curso option:selected').text();
+                $('#modal-calificaciones-curso').text(cursoNombre);
+            }
+            
+            $('#modal-calificaciones-promedio').text(estudiantePromedio);
+            
+            // Configurar estado
+            const estadoBadge = $('#modal-calificaciones-estado');
+            estadoBadge.text(estudianteEstado);
+            if (estudianteEstado === 'Aprobado') {
+                estadoBadge.removeClass('bg-danger').addClass('bg-success');
+            } else {
+                estadoBadge.removeClass('bg-success').addClass('bg-danger');
+            }
+            
+            // Configurar foto
+            if (estudianteFoto !== 'default') {
+                $('#modal-calificaciones-foto').attr('src', estudianteFoto);
+            } else {
+                $('#modal-calificaciones-foto').attr('src', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg==');
+            }
+            
+            paginaActualCalificaciones = 1;
+            cargarCalificaciones(estudianteCalificacionesId, paginaActualCalificaciones);
+            $('#modalCalificaciones').modal('show');
+        });
+
+        // Función para cargar observaciones via AJAX
+        function cargarObservaciones(estudianteId, pagina) {
+            const asignaturaId = $('#select-asignatura').val();
+            $.ajax({
+                url: "{{ url_for('academico.obtener_observaciones') }}",
+                type: "GET",
+                data: {
+                    estudiante_id: estudianteId,
+                    asignatura_id: asignaturaId,
+                    page: pagina,
+                    per_page: 10  // 10 registros por página
+                },
+                success: function(data) {
+                    const contenedor = $('#contenedor-observaciones');
+                    contenedor.empty();
+                    
+                    // Actualizar información de paginación
+                    $('#info-paginacion-observaciones').text(
+                        `Mostrando ${((pagina - 1) * 10) + 1} - ${Math.min(pagina * 10, data.total_registros)} de ${data.total_registros} observaciones`
+                    );
+                    
+                    if (data.observaciones.length > 0) {
+                        // Crear tabla para observaciones
+                        const tabla = $('<table class="table table-sm table-hover table-modal">');
+                        const thead = $('<thead>').append(
+                            $('<tr>').append(
+                                $('<th>').text('Fecha'),
+                                $('<th>').text('Estado'),
+                                $('<th>').text('Asignatura'),
+                                $('<th>').text('Observación'),
+                                $('<th>').text('Registrado por')
+                            )
+                        );
+                        
+                        const tbody = $('<tbody>');
+                        
+                        data.observaciones.forEach(function(obs) {
+                            const fecha = new Date(obs.fecha);
+                            const fechaFormateada = fecha.toLocaleDateString('es-ES');
+                            
+                            // Determinar color según el estado
+                            let colorClase = 'text-secondary';
+                            if (obs.estado === 'presente') colorClase = 'asistencia-presente';
+                            else if (obs.estado === 'ausente') colorClase = 'asistencia-ausente';
+                            else if (obs.estado === 'justificado') colorClase = 'asistencia-justificada';
+                            
+                            tbody.append(
+                                $('<tr>').append(
+                                    $('<td>').text(fechaFormateada),
+                                    $('<td>').addClass(colorClase).text(obs.estado.toUpperCase()),
+                                    $('<td>').text(obs.asignatura || 'N/A'),
+                                    $('<td>').text(obs.observacion || 'N/A'),
+                                    $('<td>').text(obs.registrado_por)
+                                )
+                            );
+                        });
+                        
+                        tabla.append(thead, tbody);
+                        contenedor.append(tabla);
+                        
+                        // Configurar paginación
+                        configurarPaginacionObservaciones(data.pagina, data.total_paginas, data.total_registros);
+                    } else {
+                        contenedor.append(`
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No hay observaciones registradas</p>
+                            </div>
+                        `);
+                        $('#pagination-observaciones').empty();
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudieron cargar las observaciones', 'error');
+                }
+            });
+        }
+
+        // Función para configurar paginación de observaciones
+        function configurarPaginacionObservaciones(paginaActual, totalPaginas, totalRegistros) {
+            const paginacion = $('#pagination-observaciones');
+            paginacion.empty();
+            
+            if (totalPaginas <= 1) return;
+            
+            // Botón anterior
+            if (paginaActual > 1) {
+                paginacion.append(`
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="cambiarPaginaObservaciones(${paginaActual - 1})">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                `);
+            } else {
+                paginacion.append(`
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                `);
+            }
+            
+            // Números de página
+            const inicio = Math.max(1, paginaActual - 2);
+            const fin = Math.min(totalPaginas, inicio + 4);
+            
+            for (let i = inicio; i <= fin; i++) {
+                if (i === paginaActual) {
+                    paginacion.append(`
+                        <li class="page-item active">
+                            <span class="page-link">${i}</span>
+                        </li>
+                    `);
+                } else {
+                    paginacion.append(`
+                        <li class="page-item">
+                            <a class="page-link" href="#" onclick="cambiarPaginaObservaciones(${i})">${i}</a>
+                        </li>
+                    `);
+                }
+            }
+            
+            // Botón siguiente
+            if (paginaActual < totalPaginas) {
+                paginacion.append(`
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="cambiarPaginaObservaciones(${paginaActual + 1})">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                `);
+            } else {
+                paginacion.append(`
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                `);
+            }
+        }
+
+        // Función para cambiar página de observaciones
+        window.cambiarPaginaObservaciones = function(pagina) {
+            paginaActualObservaciones = pagina;
+            cargarObservaciones(estudianteObservacionesId, pagina);
+        }
+
+        // Función para cargar calificaciones via AJAX
+        function cargarCalificaciones(estudianteId, pagina) {
+            $.ajax({
+                url: "{{ url_for('academico.obtener_calificaciones') }}",
+                type: "GET",
+                data: { 
+                    estudiante_id: estudianteId,
+                    page: pagina,
+                    per_page: 10  // 10 registros por página
+                },
+                success: function(data) {
+                    const contenedor = $('#contenedor-calificaciones');
+                    contenedor.empty();
+                    
+                    if (data.error) {
+                        Swal.fire('Error', data.error, 'error');
+                        return;
+                    }
+                    
+                    // Actualizar información de paginación
+                    $('#info-paginacion-calificaciones').text(
+                        `Mostrando ${((pagina - 1) * 10) + 1} - ${Math.min(pagina * 10, data.pagination.total)} de ${data.pagination.total} calificaciones`
+                    );
+                    
+                    if (data.calificaciones && data.calificaciones.length > 0) {
+                        // Crear tabla para calificaciones
+                        const tabla = $('<table class="table table-sm table-hover table-modal">');
+                        const thead = $('<thead>').append(
+                            $('<tr>').append(
+                                $('<th>').text('Fecha'),
+                                $('<th>').text('Asignatura'),
+                                $('<th>').text('Calificación'),
+                                $('<th>').text('Observaciones'),
+                                $('<th>').text('Docente')
+                            )
+                        );
+                        
+                        const tbody = $('<tbody>');
+                        
+                        data.calificaciones.forEach(function(cal) {
+                            // Determinar clase según la nota
+                            const nota = parseFloat(cal.nota);
+                            const claseNota = isNaN(nota) ? '' : (nota >= {{ config_libro.nota_basico }}) ? 'calificacion-aprobada' : 'calificacion-reprobada';
+                            
+                            tbody.append(
+                                $('<tr>').append(
+                                    $('<td>').text(cal.fecha_calificacion || 'N/A'),
+                                    $('<td>').text(cal.asignatura || 'N/A'),
+                                    $('<td>').addClass(claseNota).text(cal.nota !== null ? cal.nota : 'N/A'),
+                                    $('<td>').text(cal.observaciones || 'N/A'),
+                                    $('<td>').text(cal.docente || 'N/A')
+                                )
+                            );
+                        });
+                        
+                        tabla.append(thead, tbody);
+                        contenedor.append(tabla);
+                        
+                        // Configurar paginación
+                        configurarPaginacionCalificaciones(data.pagination.page, data.pagination.pages, data.pagination.total);
+                    } else {
+                        contenedor.append(`
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No hay calificaciones registradas</p>
+                            </div>
+                        `);
+                        $('#pagination-calificaciones').empty();
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudieron cargar las calificaciones', 'error');
+                }
+            });
+        }
+
+        // Función para configurar paginación de calificaciones
+        function configurarPaginacionCalificaciones(paginaActual, totalPaginas, totalRegistros) {
+            const paginacion = $('#pagination-calificaciones');
+            paginacion.empty();
+            
+            if (totalPaginas <= 1) return;
+            
+            // Botón anterior
+            if (paginaActual > 1) {
+                paginacion.append(`
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="cambiarPaginaCalificaciones(${paginaActual - 1})">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                `);
+            } else {
+                paginacion.append(`
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                `);
+            }
+            
+            // Números de página
+            const inicio = Math.max(1, paginaActual - 2);
+            const fin = Math.min(totalPaginas, inicio + 4);
+            
+            for (let i = inicio; i <= fin; i++) {
+                if (i === paginaActual) {
+                    paginacion.append(`
+                        <li class="page-item active">
+                            <span class="page-link">${i}</span>
+                        </li>
+                    `);
+                } else {
+                    paginacion.append(`
+                        <li class="page-item">
+                            <a class="page-link" href="#" onclick="cambiarPaginaCalificaciones(${i})">${i}</a>
+                        </li>
+                    `);
+                }
+            }
+            
+            // Botón siguiente
+            if (paginaActual < totalPaginas) {
+                paginacion.append(`
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="cambiarPaginaCalificaciones(${paginaActual + 1})">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                `);
+            } else {
+                paginacion.append(`
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                `);
+            }
+        }
+
+        // Función para cambiar página de calificaciones
+        window.cambiarPaginaCalificaciones = function(pagina) {
+            paginaActualCalificaciones = pagina;
+            cargarCalificaciones(estudianteCalificacionesId, pagina);
+        }
+    });
+    </script>
+</body>
+</html>

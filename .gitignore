@@ -1,0 +1,50 @@
+# Entorno virtual
+venv/
+.env
+
+# Archivos de configuración sensible
+*.env
+*.key
+*.secret
+
+# Archivos de desarrollo / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+__pycache__/
+*.py[cod]
+
+# Base de datos y migraciones (excepto scripts necesarios)
+*.sqlite3
+*.db
+/migrations/
+
+# Logs y archivos generados
+*.log
+*.pot
+*.pyc
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+
+# Backend - Python
+*.egg-info/
+dist/
+build/
+
+# Archivos temporales
+*.tmp
+*.bak
+
+# Archivos de entorno de Python
+.python-version
+
+# Archivos de coverage (pruebas)
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints/

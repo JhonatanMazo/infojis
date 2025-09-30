@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">          
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>   
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+        
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+            
+            <div class="container-fluid py-4">
+                <!-- Filtros -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form method="GET" action="{{ url_for('periodos.listar_periodos') }}">
+                            <div class="row g-3">                            
+                                <div class="col-md-3">
+                                    <label for="filtro_nombre" class="form-label">Nombre del Período:</label>
+                                    <select class="form-select" name="nombre" id="filtro_nombre">
+                                        <option value="">Seleccione un nombre</option>
+                                        {% for periodo in todos_los_periodos %}
+                                            <option value="{{ periodo.nombre }}" {% if nombre_seleccionado == periodo.nombre %}selected{% endif %}>
+                                                {{ periodo.nombre }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100">
+                                        <i class="fas fa-filter me-1"></i> Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla con Bootstrap -->
+            <div class="container-fluid py-4">
+                <div class="card shadow-sm">
+                    <div class="card-header  d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Períodos Registrados</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-calendar-alt me-1 text-primary"></i><strong>Períodos: </strong><span id="numeroPeriod">{{ periodos.total}}</span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('periodos.exportar_periodos_pdf') }}" 
+                               class="btn btn-outline-secondary me-2">
+                               <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalPeriodo">
+                                <i class="fas fa-plus-circle me-1"></i> Nuevo Periodo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nombre</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if not periodos.items %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay periodos registrados.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% for periodo in periodos.items %}
+                                       <tr>
+                                           <td>{{ loop.index + (periodos.page - 1) * periodos.per_page }}</td>
+                                           <td>{{ periodo.nombre }}</td>
+                                           <td>{{ periodo.fecha_inicio }}</td>
+                                           <td>{{ periodo.fecha_fin }}</td>
+                                           <td>
+                                               <button class="btn btn-sm btn-outline-warning me-1 btn-edit-periodo"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#modalEditarPeriodo"
+                                                   data-id="{{ periodo.id }}"
+                                                   data-nombre="{{ periodo.nombre }}"
+                                                   data-fecha-inicio="{{ periodo.fecha_inicio }}"
+                                                   data-fecha-fin="{{ periodo.fecha_fin }}">
+                                                   <i class="fas fa-edit"></i>
+                                               </button>
+                                               <button class="btn btn-sm btn-outline-danger btn-eliminar-periodo"
+                                                   data-id="{{ periodo.id }}"
+                                                   data-nombre="{{ periodo.nombre }}"
+                                                   type="button"> 
+                                                   <i class="fas fa-trash-alt"></i>
+                                               </button>
+                                           </td>
+                                       </tr>
+                                    {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ start_index }} - {{ end_index }} de {{ periodos.total }} registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <!-- Página anterior -->
+                                    <li class="page-item {% if not periodos.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('periodos.listar_periodos', page=periodos.prev_num, nombre=nombre_seleccionado) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <!-- Páginas numeradas -->
+                                    {% for page_num in periodos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == periodos.page %}active{% endif %}">
+                                                <a class="page-link"
+                                                href="{{ url_for('periodos.listar_periodos', page=page_num, nombre=nombre_seleccionado) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Página siguiente -->
+                                    <li class="page-item {% if not periodos.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('periodos.listar_periodos', page=periodos.next_num, nombre=nombre_seleccionado) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+                    
+
+
+
+    <!-- Modal Crear Período -->
+    <div class="modal fade" id="modalPeriodo" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Nuevo Período</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('periodos.crear_periodo') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" placeholder="Nombre del período" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha Inicio (MM-DD)</label>
+                            <input type="text" class="form-control" name="fecha_inicio" placeholder="Ej: 01-15" pattern="^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha Fin (MM-DD)</label>
+                            <input type="text" class="form-control" name="fecha_fin" placeholder="Ej: 06-30" pattern="^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+        
+    
+    <!-- Modal Editar Período  -->
+    <div class="modal fade" id="modalEditarPeriodo" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Período</h5>  <!-- Título corregido -->
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarPeriodo" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" id="edit-nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha Inicio (MM-DD)</label>
+                            <input type="text" class="form-control" name="fecha_inicio" id="edit-fecha-inicio" placeholder="Ej: 01-15" pattern="^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha Fin (MM-DD)</label>
+                            <input type="text" class="form-control" name="fecha_fin" id="edit-fecha-fin" placeholder="Ej: 06-30" pattern="^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Actualizar Periodo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>    
+
+    <form id="formEliminarPeriodo" method="POST" style="display: none;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+
+                                
+    
+    <!-- Scripts de bootstrap -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/views/academico/periodos.js') }}"></script>
+</body>
+</html>

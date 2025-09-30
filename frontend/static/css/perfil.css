@@ -1,0 +1,225 @@
+
+:root {
+    --primary-color: #ff6600;
+    --secondary-color: #f8f9fa;
+    --accent-color: #6c757d;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --sidebar-width: 250px;
+    --header-height: 60px;
+}
+
+/* Profile Container */
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    min-height: calc(100vh - var(--header-height));
+}
+
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 1rem;
+    }
+}
+
+/* Profile Card */
+.profile-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    border: none;
+    transition: transform 0.3s ease;
+}
+
+.profile-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Avatar Styles */
+.profile-avatar-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    display: inline-block;
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid var(--primary-color);
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
+}
+
+.camera-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255,102,0,0.3);
+}
+
+.camera-btn:hover {
+    background-color: #e55a00;
+    transform: scale(1.1);
+}
+
+/* Contact Info */
+.contact-info {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background 0.3s ease;
+}
+
+.contact-item:hover {
+    background: rgba(255,102,0,0.1);
+}
+
+.contact-item:last-child {
+    margin-bottom: 0;
+}
+
+.contact-icon {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Form Styles */
+.nav-tabs {
+    border: none;
+    gap: 0.5rem;
+}
+
+
+.nav-tabs .btn.active {
+    background: var(--primary-color);
+    color: white !important;
+    border-color: var(--primary-color);
+}
+
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+
+.btn-perfil {
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    background-color: var(--light-accent);
+    transition: all var(--transition-fast);
+    
+}
+
+.btn-perfil:hover {
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    background-color: var(--light-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(255, 102, 0, 0.15);
+}
+
+.btn-perfil:focus,
+.btn-perfil:active {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: var(--light-accent);
+    box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.2);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(255,102,0,0.25);
+    background: white;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+    width: 0%;
+}
+
+.password-strength.weak {
+    background-color: var(--danger-color);
+    width: 33%;
+}
+
+.password-strength.medium {
+    background-color: var(--warning-color);
+    width: 66%;
+}
+
+.password-strength.strong {
+    background-color: var(--success-color);
+    width: 100%;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease;
+}
+
+
+.spinner-border {
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}

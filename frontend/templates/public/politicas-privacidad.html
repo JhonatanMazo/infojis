@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Infojis - Políticas de Privacidad del Sistema de Gestión Académica">
+  <meta name="keywords" content="privacidad, datos personales, protección, LOPD, jardín infantil, gestión educativa">
+  <meta name="author" content="Infojis">
+  <link rel="icon" type="image/png"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+  <title>Infojis - Políticas de Privacidad</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Estilos personalizados -->  
+  <link rel="stylesheet" href="../../static/css/public/politicas-privacidad.css">
+    
+  <!-- jsPDF y html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+  <div class="scroll-indicator" id="scrollIndicator"></div>
+
+  <header class="bg-white shadow sticky-top py-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a href="/" class="d-flex align-items-center text-decoration-none">
+        <div class="rounded p-2 me-2" style="background-color:#fd7e14;">
+          <i class="fas fa-graduation-cap text-white"></i>
+        </div>
+        <span class="fs-4 fw-bold header-logo"><span class="text-dark">Info</span>jis</span>
+      </a>
+      <a href="#" class="btn btn-back">
+        <i class="fas fa-arrow-left me-2"></i>Volver atrás
+      </a>
+    </div>
+  </header>
+
+  <main class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <!-- Contenido que se convertirá a PDF -->
+        <div id="contentToPrint" class="pdf-content p-4">
+
+          <!-- Encabezado del documento PDF -->
+          <div class="pdf-header">
+            <div class="pdf-logo">
+              <i class="fas fa-shield-alt"></i> INFOJIS
+            </div>
+            <h1 class="pdf-title">Políticas de Privacidad</h1>
+            <div class="pdf-subtitle">Sistema de Información Escolar - Jardín Infantil Sonrisas</div>
+            <div class="document-info">
+              <strong>Documento:</strong> Políticas de Privacidad y Protección de Datos<br>
+              <strong>Marco Legal:</strong> Ley 1581 de 2012 - Decreto 1377 de 2013<br>
+              <strong>Versión:</strong> 1.0 | <strong>Fecha de actualización:</strong> 12 de Agosto de 2025<br>
+              <strong>Vigencia:</strong> A partir de la fecha de publicación
+            </div>
+          </div>
+
+          <!-- Contenido principal -->
+          <div class="pdf-section">
+            <h2><i class="fas fa-info-circle me-2"></i>1. Información General</h2>
+            <p>El Jardín Infantil Sonrisas, a través de su sistema de información Infojis, se compromete a proteger la
+              privacidad y los datos personales de sus usuarios, cumpliendo con la normativa colombiana vigente en
+              materia de protección de datos personales.</p>
+
+            <div class="privacy-highlight">
+              <strong><i class="fas fa-lock me-2"></i>Compromiso de Privacidad:</strong><br>
+              Nos comprometemos a tratar sus datos personales con absoluta confidencialidad, transparencia y seguridad,
+              utilizándolos únicamente para los fines educativos y administrativos del jardín infantil.
+            </div>
+
+            <div class="legal-reference">
+              <strong>Marco Normativo:</strong> Esta política se fundamenta en la Ley 1581 de 2012 "Por la cual se
+              dictan disposiciones generales para la protección de datos personales" y el Decreto 1377 de 2013.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-user-shield me-2"></i>2. Responsable del Tratamiento</h2>
+            <div class="contact-info">
+              <p><strong>Responsable:</strong> Jardín Infantil Sonrisas</p>
+              <p><strong>Domicilio:</strong> Urbanización Luis Carlos Galán Mz E casa 9, Valledupar</p>
+              <p><strong>Correo:</strong> <a href="jardininfantilsonrisas2023@gmail.com"
+                  style="color: #fd7e14;">jardininfantilsonrisas2023@gmail.com</a></p>
+              <p><strong>Teléfono:</strong> +57 300 149 8933</p>
+              <p><strong>Horario de atención:</strong> Lunes a viernes de 8:00 AM a 5:00 PM</p>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-database me-2"></i>3. Datos Personales Recopilados</h2>
+            <p>A través del sistema Infojis, recopilamos los siguientes tipos de datos personales:</p>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">3.1. Datos de
+              Estudiantes:</h3>
+            <ul>
+              <li>Información de identificación: nombre completo, documento de identidad, fecha de nacimiento,
+                fotografía del estudiante con autorización del acudiente</li>
+              <li>Datos de contacto: dirección de residencia, teléfonos de contacto, correo electronico, etc.</li>
+              <li>Información académica: registros de asistencia, calificaciones, observaciones</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">3.3. Datos de Empleados:
+            </h3>
+            <ul>
+              <li>Información personal</li>
+              <li>Registros de actividades dentro del sistema</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-bullseye me-2"></i>4. Finalidades del Tratamiento</h2>
+            <p>Los datos personales se utilizan para las siguientes finalidades:</p>
+
+            <ol>
+              <li><strong>Gestión Académica:</strong> Seguimiento del proceso educativo, evaluaciones, reportes
+                académicos</li>
+              <li><strong>Administración Escolar:</strong> Control de asistencia, gestión de matrículas, facturación
+              </li>
+              <li><strong>Comunicación:</strong> Envío de información relevante a padres o acudientes</li>
+              <li><strong>Seguridad:</strong> Control de acceso y seguridad</li>
+              <li><strong>Cumplimiento Legal:</strong> Cumplir con obligaciones legales y regulatorias</li>
+              <li><strong>Mejora del Servicio:</strong> Análisis estadístico para mejorar la calidad educativa</li>
+              <li><strong>Archivo Histórico:</strong> Conservación de registros académicos según normativa</li>
+            </ol>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-balance-scale me-2"></i>5. Fundamentos Jurídicos</h2>
+            <p>El tratamiento de datos personales se fundamenta en:</p>
+            <ul>
+              <li><strong>Consentimiento:</strong> Autorización expresa otorgada por los titulares o sus representantes
+                legales</li>
+              <li><strong>Obligación legal:</strong> Cumplimiento de normativas educativas y de protección al menor</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-users me-2"></i>6. Destinatarios y Transferencias</h2>
+            <p>Los datos personales pueden ser compartidos con:</p>
+            <ul>
+              <li><strong>Personal autorizado:</strong> Docentes, administrativos y directivos del jardín</li>
+              <li><strong>Autoridades educativas:</strong> Secretaría de Educación y entidades de control</li>
+              <li><strong>Autoridades competentes:</strong> Cuando sea requerido por ley</li>
+            </ul>
+
+            <div class="privacy-highlight">
+              <strong>Garantía:</strong> Todos los terceros que accedan a datos personales están obligados a mantener el
+              mismo nivel de protección y confidencialidad establecido en esta política.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-clock me-2"></i>7. Tiempo de Conservación</h2>
+            <p>Los datos personales se conservarán durante los siguientes períodos:</p>
+            <ul>
+              <li><strong>Datos académicos:</strong> Durante la permanencia del estudiante en el jardín y 10 años
+                adicionales</li>
+              <li><strong>Datos financieros:</strong> 5 años según normativa contable y tributaria</li>
+              <li><strong>Datos de empleados:</strong> Durante la relación laboral y según normativa laboral</li>
+              <li><strong>Registros de acceso:</strong> 2 años para fines de seguridad</li>
+            </ul>
+            <p>Transcurridos estos períodos, los datos serán eliminados de manera segura, salvo obligación legal de
+              conservarlos por mayor tiempo.</p>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-key me-2"></i>8. Derechos de los Titulares</h2>
+            <p>Como titular de datos personales, usted tiene derecho a:</p>
+
+            <div>
+              <h3 style="font-size: 1rem; margin-bottom: 15px;"><i class="fas fa-eye me-2"></i>Derechos Fundamentales:
+              </h3>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Acceso:</strong> Conocer qué datos tenemos sobre usted</li>
+                <li><strong>Rectificación:</strong> Corregir datos inexactos o incompletos</li>
+                <li><strong>Cancelación:</strong> Solicitar la eliminación de sus datos</li>
+                <li><strong>Oposición:</strong> Oponerse al tratamiento de sus datos</li>
+                <li><strong>Portabilidad:</strong> Obtener sus datos en formato digital</li>
+                <li><strong>Limitación:</strong> Restringir el tratamiento en ciertos casos</li>
+              </ul>
+            </div>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">8.1. Procedimiento para
+              ejercer derechos:</h3>
+            <ol>
+              <li>Enviar solicitud escrita a <a href="mailto:jardininfantilsonrisas2023@gmail.com"
+                  style="color: #fd7e14;">jardininfantilsonrisas2023@gmail.com</a></li>
+              <li>Incluir: identificación del titular, descripción de la solicitud, documentos de soporte</li>
+              <li>Tiempo de respuesta: máximo 15 días hábiles</li>
+              <li>En caso de rectificación o actualización: máximo 5 días hábiles adicionales</li>
+            </ol>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-shield-alt me-2"></i>9. Medidas de Seguridad</h2>
+            <p>Implementamos las siguientes medidas técnicas y organizativas:</p>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">9.1. Medidas Técnicas:
+            </h3>
+            <ul>
+              <li>Cifrado de datos en tránsito y en reposo</li>
+              <li>Sistemas de autenticación y control de acceso</li>
+            </ul>
+
+            <h3 style="font-size: 1.1rem; color: #333; margin-top: 20px; margin-bottom: 10px;">9.2. Medidas
+              Organizativas:</h3>
+            <ul>
+              <li>Capacitación continua del personal</li>
+              <li>Políticas internas de seguridad</li>
+              <li>Contratos de confidencialidad</li>
+              <li>Procedimientos de respuesta a incidentes</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-cookie-bite me-2"></i>10. Cookies y Tecnologías de Seguimiento</h2>
+            <p>El sistema Infojis utiliza cookies y tecnologías similares para:</p>
+            <ul>
+              <li><strong>Cookies esenciales:</strong> Para el funcionamiento básico del sistema</li>
+              <li><strong>Cookies de sesión:</strong> Para mantener la sesión del usuario activa</li>
+            </ul>
+            <p>Los usuarios pueden configurar su navegador para rechazar cookies, aunque esto puede afectar la
+              funcionalidad del sistema.</p>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-exclamation-triangle me-2"></i>11. Tratamiento de Datos de Menores</h2>
+            <p>Dada la naturaleza de nuestros servicios educativos dirigidos a menores de edad:</p>
+            <ul>
+              <li>Siempre solicitamos autorización de padres o representantes legales</li>
+              <li>Aplicamos medidas de protección especiales para datos de menores</li>
+              <li>Limitamos el tratamiento a finalidades educativas y de cuidado</li>
+              <li>Garantizamos que el tratamiento sea en el interés superior del menor</li>
+              <li>Implementamos controles adicionales de seguridad y acceso</li>
+            </ul>
+
+            <div class="privacy-highlight">
+              <strong>Protección Especial:</strong> Los datos de menores reciben un nivel de protección reforzado
+              conforme a la normativa de protección a la infancia y adolescencia.
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-edit me-2"></i>12. Modificaciones a la Política</h2>
+            <p>Esta política de privacidad puede ser actualizada periódicamente. En caso de cambios significativos:</p>
+            <ul>
+              <li>Notificaremos a los usuarios con al menos 30 días de anticipación</li>
+              <li>Los cambios se publicarán en el sistema y sitio web</li>
+              <li>Se solicitará nueva autorización cuando sea requerida por ley</li>
+            </ul>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-gavel me-2"></i>13. Autoridad de Control</h2>
+            <p>En caso de considerar que sus derechos han sido vulnerados, puede dirigir sus reclamaciones ante:</p>
+            <div class="contact-info">
+              <p><strong>Superintendencia de Industria y Comercio</strong></p>
+              <p><strong>Dirección:</strong> Carrera 13 No. 27 – 00, Bogotá D.C., Colombia</p>
+              <p><strong>Línea gratuita:</strong> 018000 910165</p>
+              <p><strong>Sitio web:</strong> www.sic.gov.co</p>
+              <p><strong>Correo:</strong> contactenos@sic.gov.co</p>
+            </div>
+          </div>
+
+          <div class="pdf-section">
+            <h2><i class="fas fa-phone me-2"></i>14. Contacto para Temas de Privacidad</h2>
+            <div class="contact-info">
+              <p><strong>Oficial de Protección de Datos</strong></p>
+              <p><strong>Jardín Infantil Sonrisas - Sistema Infojis</strong></p>
+              <p><i class="fas fa-envelope me-2"></i><strong>Correo:</strong> <a href="mailto:jardininfantilsonrisas2023@gmail.com"
+                  style="color: #fd7e14; text-decoration: none;">jardininfantilsonrisas2023@gmail.com</a></p>
+              <p><i class="fas fa-phone me-2"></i><strong>Teléfono:</strong> +57 300 149 8933</p>
+              <p><i class="fas fa-map-marker-alt me-2"></i><strong>Dirección:</strong> Urbanización Luis Carlos Galán Mz E casa 9, Valledupar</p>
+              <p><i class="fas fa-clock me-2"></i><strong>Horario:</strong> Lunes a viernes de 8:00 AM a 5:00 PM</p>
+            </div>
+          </div>
+
+          <!-- Pie de página del documento -->
+          <div class="pdf-footer">
+            <hr style="border-color: #fd7e14; margin: 20px 0;">
+            <p><strong>INFOJIS - Políticas de Privacidad</strong></p>
+            <p>Jardín Infantil Sonrisas | Centro Biotecnológico del Caribe | Valledupar, Cesar, Colombia</p>
+            <p>Este documento cumple con la Ley 1581 de 2012 y normativa aplicable en Colombia</p>
+            <p style="font-size: 10px; margin-top: 15px;">
+              Documento generado automáticamente el <span id="generation-date"></span> | Versión 1.0<br>
+              Para consultas sobre privacidad: <a href="mailto:jardininfantilsonrisas2023@gmail.com"
+                style="color: #fd7e14;">jardininfantilsonrisas2023@gmail.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Botón flotante de descarga -->
+  <button class="btn-download position-fixed shadow-lg rounded-circle" aria-label="Descargar PDF" id="downloadPdf">
+    <i class="fas fa-download"></i>
+  </button>
+
+  <footer class="py-4 mt-5">
+    <div class="container text-center">
+      <p class="mb-0">&copy; <span id="year"></span> Infojis. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Contenedor de Toast -->
+  <div class="toast-container">
+    <div id="pdfToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          ✅ PDF listo y descargado.
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/public/politicas-privacidad.js"></script>
+</body>
+</html>

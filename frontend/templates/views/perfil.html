@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../static/css/perfil.css"> 
+    <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+            
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Alert Container -->
+            <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050; width: 300px;"></div>
+
+            <!-- Profile Content -->
+            <div class="profile-container">
+                <div class="row">
+                    <!-- Left Column - Profile Info -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="profile-card fade-in-up">
+                            <div class="card-body text-center p-4">
+                                <div class="profile-avatar-container mb-4">
+                                    {% if current_user.foto %}
+                                        <img src="{{ current_user.get_profile_picture_url() or'img/default-profile.jpg'}}"
+                                        alt="Foto" class="user-avatar rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                                    {% else %}
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg==" alt="Foto de perfil" class="profile-avatar" id="main-avatar">
+                                    {% endif %}
+                                    <button class="camera-btn" data-bs-toggle="modal" data-bs-target="#modalCambiarFoto">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                </div>
+                                <h4 class="mb-2" id="profile-fullname">{{ current_user.nombre }} {{ current_user.apellidos or '' }}</h4>
+                                <p class="text-muted mb-3" id="profile-role">{{ current_user.rol }}</p>
+                                
+                                <hr>
+                                
+                                <div class="text-start">
+                                    <h6 class="mb-3">Información de Contacto</h6>
+                                    <div class="mb-2">
+                                        <i class="fas fa-envelope me-2 text-primary"></i>
+                                        <span id="profile-email">{{ current_user.email }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-phone me-2 text-primary"></i>
+                                        <span id="profile-phone">{{ current_user.telefono or 'No especificado' }}</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <ul class="nav nav-tabs mt-4">
+                                        <li class="nav-item">
+                                            <button class="btn btn-perfil active" data-bs-toggle="tab" data-bs-target="#perfil-tab">
+                                                <i class="fas fa-user me-2"></i>Perfil
+                                            </button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="btn btn-perfil" data-bs-toggle="tab" data-bs-target="#contrasena-tab">
+                                                <i class="fas fa-lock me-2"></i>Contraseña
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Edit Forms -->
+                    <div class="col-lg-8">
+                        <div class="profile-card fade-in-up">
+                            <div class="card-body p-4">
+                                <div class="tab-content">
+                                    <!-- Profile Tab -->
+                                    <div class="tab-pane fade show active" id="perfil-tab">
+                                        <div class="card-header p-0 mb-4 border-b">
+                                            <p class="text-muted" id="profile-role">Editar información de perfil</p>
+                                        </div>
+                                        <form id="profile-form" method="POST" action="{{ url_for('perfil.actualizar_perfil') }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nombres *</label>
+                                                    <input type="text" class="form-control" name="nombre" id="nombres" value="{{ current_user.nombre }}" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Apellidos</label>
+                                                    <input type="text" class="form-control" name="apellidos" id="apellidos" value="{{ current_user.apellidos or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Correo electrónico *</label>
+                                                    <input type="email" class="form-control" name="email" id="email" value="{{ current_user.email }}" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Teléfono</label>
+                                                    <input type="tel" class="form-control" name="telefono" id="telefono" value="{{ current_user.telefono or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Género</label>
+                                                    <select class="form-select" name="genero" id="genero">
+                                                        <option value="femenino" {% if current_user.genero == 'femenino' %}selected{% endif %}>Femenino</option>
+                                                        <option value="masculino" {% if current_user.genero == 'masculino' %}selected{% endif %}>Masculino</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-end">
+                                                <button type="submit" class="btn btn-outline-primary w-100 w-md-auto">
+                                                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <!-- Password Tab -->
+                                    <div class="tab-pane fade" id="contrasena-tab">
+                                        <div class="card-header p-0 mb-4 border-b">
+                                            <p class="text-muted" id="profile-role">Cambiar contraseña</p>
+                                        </div>
+                                        <form id="password-form" method="POST" action="{{ url_for('perfil.cambiar_contrasena') }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-12">
+                                                    <label class="form-label">Contraseña actual *</label>
+                                                    <input type="password" class="form-control" name="current_password" id="current-password" required >
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nueva contraseña *</label>
+                                                    <input type="password" class="form-control" name="new_password" id="new-password" required
+                                                        minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                                                        title="Mínimo 8 caracteres, al menos 1 letra y 1 número">
+                                                    <div class="password-strength weak mt-2"></div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Confirmar nueva contraseña *</label>
+                                                    <input type="password" class="form-control" name="confirm_password" id="confirm-password" required
+                                                        minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$"
+                                                        title="Mínimo 8 caracteres, al menos 1 letra y 1 número">
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-end">
+                                                <button type="submit" class="btn btn-outline-primary w-100 w-md-auto">
+                                                    <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<div class="modal fade" id="modalCambiarFoto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar foto de perfil</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <div class="position-relative d-inline-block">
+                        {% if current_user.foto %}
+                            <!-- Imagen de perfil -->
+                            <img src="{{ current_user.get_profile_picture_url() or'img/default-profile.jpg'}}"
+                            alt="Foto" class="user-avatar rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+
+                            <!-- Botón de eliminar -->
+                            <form method="POST" action="{{ url_for('perfil.eliminar_foto') }}"
+                                 style="position: absolute; bottom: 0; right: 0;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="camera-btn">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg==" 
+                                alt="Foto de perfil"
+                                 class="user-avatar rounded-circle"
+                                 style="width: 150px; height: 150px; object-fit: cover;">
+                            {% endif %}
+                    </div>
+                </div>
+
+                <!-- 📤 Formulario para subir imagen (por separado) -->
+                <form method="POST" action="{{ url_for('perfil.cambiar_foto') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="photo-upload" class="form-label">Seleccionar imagen</label>
+                        <input class="form-control" type="file" name="foto" id="photo-upload" accept="image/*">
+                    </div>
+                    <div class="form-text">Formatos recomendados: JPG, PNG. Tamaño máximo: 2MB</div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+    
+   <!-- Scripts de bootstrap -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->
+    <script src="../../static/js/main.js"></script>
+    <script src="{{ url_for('static', filename='js/views/perfil.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+</body>
+</html>

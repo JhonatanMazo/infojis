@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %} {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %} {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">
+                Rol no reconocido: {{ current_user.rol }}
+            </div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Filtros con Bootstrap -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Grado</label>
+                                <select class="form-select" name="curso" id="curso-select">
+                                    <option value="">Seleccione un grado</option>
+                                    {% for curso in cursos %}
+                                    <option value="{{ curso.id }}" {% if curso.id==curso_filtrado %}selected{% endif %}>
+                                        {{ curso.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" id="estado-select">
+                                    <option value="">Seleccione estado</option>
+                                    <option value="activo" {% if estado_filtrado=='activo' %}selected{% endif %}>Activo
+                                    </option>                                    
+                                    <option value="retirado" {% if estado_filtrado=='retirado' %}selected{% endif %}>
+                                        Retirado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-outline-filter w-100" id="filtrar-btn">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de estudiantes (siempre visible) -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Gestión de Transferencias</h5>
+                            <div class="text-muted small">
+                                <i class="fas fa-users me-1 text-primary"></i>
+                                Estudiantes: {% if filtros_aplicados %}{{ matriculas.total }}{% else %}0{% endif %}
+                                
+                            </div>
+                        </div>
+                        <div>
+                            <!-- Botón de Historial -->
+                            <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#modalHistorial">
+                                <i class="fas fa-history me-1"></i> Historial
+                            </button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalTransferenciaMultiple">
+                                <i class="fas fa-exchange-alt me-1"></i> Transferir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="50"><input type="checkbox" class="form-check-input" id="select-all" {% if not filtros_aplicados %}disabled{% endif %}>
+                                        </th>
+                                        <th width="50">#</th>
+                                        <th width="80">Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th>Grado</th>
+                                        <th>Última Transferencia</th>
+                                        <th>Estado</th>
+                                        <th width="100">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if filtros_aplicados and matriculas.items %}
+                                        {% for matricula in matriculas.items %}
+                                        <tr>
+                                            <td><input type="checkbox" class="form-check-input matricula-checkbox"
+                                                    value="{{ matricula.id }}"></td>
+                                            <td>{{ loop.index + (matriculas.page - 1) * matriculas.per_page }}</td>
+                                            <td>
+                                                {% if matricula.foto %}
+                                                <img src="{{ url_for('static', filename='uploads/profiles/' ~ matricula.foto) }}"
+                                                    alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                                {% else %}
+                                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                    alt="Foto por defecto" class="rounded-circle"
+                                                    style="width:40px; height:40px;">
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ matricula.apellidos }}</td>
+                                            <td>{{ matricula.nombres }}</td>
+                                            <td>{{ matricula.documento }}</td>
+                                            <td>{{ matricula.curso.nombre if matricula.curso else 'Sin curso' }}</td>
+                                            <td>
+                                                {% if matricula.fecha_transferencia %}
+                                                    {{ matricula.fecha_transferencia.strftime('%d/%m/%Y') }}<br>
+                                                    <small class="text-muted">Por: {{ matricula.transferido_por or 'N/A' }}</small>
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge bg-{% if matricula.estado == 'activo' %}success{% else %}danger{% endif %}">
+                                                    {{ matricula.estado.capitalize() if matricula.estado else 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    {% if current_user.rol in ['admin', 'coordinador'] %}
+                                                    <button type="button" class="btn btn-outline-primary"
+                                                        data-bs-toggle="modal" data-bs-target="#modalTransferenciaIndividual"
+                                                        data-matricula-id="{{ matricula.id }}"
+                                                        data-curso-actual="{{ matricula.id_curso }}">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="10" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                                <p>No hay estudiantes para mostrar. Aplique filtros para ver los resultados.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- PAGINACIÓN PARA TABLA PRINCIPAL -->
+                    {% if filtros_aplicados and matriculas.pages > 0 %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-users me-1 text-primary"></i>
+                                Total: {{ matriculas.total }} registros |
+                                Mostrando: {{ (matriculas.page - 1) * matriculas.per_page + 1 }} - 
+                                {{ matriculas.page * matriculas.per_page if matriculas.page * matriculas.per_page <= matriculas.total else matriculas.total }}
+                            </div>
+
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item {% if not matriculas.has_prev %}disabled{% endif %}">
+                                        <a class="page-link" 
+                                           href="{{ url_for('transferir.index', page=matriculas.prev_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    {% for page_num in matriculas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == matriculas.page %}active{% endif %}">
+                                                <a class="page-link" 
+                                                   href="{{ url_for('transferir.index', page=page_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <li class="page-item {% if not matriculas.has_next %}disabled{% endif %}">
+                                        <a class="page-link" 
+                                           href="{{ url_for('transferir.index', page=matriculas.next_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+   <!-- En el modal de historial, mostrar información sobre el año actual -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" aria-labelledby="modalHistorialLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalHistorialLabel">
+                    <i class="fas fa-history me-2"></i>Historial de Transferencias
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <span class="text-muted ms-3">Total de registros: {{ historial_transferencias.total }}</span>
+                    </div>
+                    <a href="{{ url_for('transferir.exportar_historial_pdf') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar DPF
+                    </a>
+                </div>
+                
+                <!-- Resto del contenido del modal permanece igual -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Foto</th>
+                                <th>Estudiante</th>
+                                <th>Documento</th>
+                                <th>Curso Origen</th>
+                                <th>Curso Destino</th>
+                                <th>Transferido Por</th>
+                                <th>Fecha</th>
+                                <th>Observaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if historial_transferencias.items %}
+                                {% for transferencia in historial_transferencias.items %}
+                                <tr>
+                                    <td>{{ (historial_transferencias.page - 1) * historial_transferencias.per_page + loop.index }}</td>
+                                    <td>
+                                        {% if transferencia.foto %}
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' ~ transferencia.foto) }}"
+                                            alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                        {% else %}
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                alt="Foto por defecto" class="rounded-circle"
+                                                style="width:40px; height:40px;">
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ transferencia.apellidos }} {{ transferencia.nombres }}</td>
+                                    <td>{{ transferencia.documento }}</td>
+                                    <td>{{ transferencia.curso_origen or 'N/A' }}</td>
+                                    <td>{{ transferencia.curso.nombre if transferencia.curso else 'N/A' }}</td>
+                                    <td>{{ transferencia.transferido_por or 'N/A' }}</td>
+                                    <td>{{ transferencia.fecha_transferencia.strftime('%d/%m/%Y %H:%M') if transferencia.fecha_transferencia else 'N/A' }}</td>
+                                    <td>
+                                        <span title="{{ transferencia.observaciones_transferencia or 'Sin observaciones' }}">
+                                            {{ (transferencia.observaciones_transferencia or 'Sin observaciones')[:30] }}{% if transferencia.observaciones_transferencia and transferencia.observaciones_transferencia|length > 30 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if current_user.rol in ['admin'] %}
+                                            <button class="btn btn-sm btn-outline-danger eliminar-historial" 
+                                                    data-id="{{ transferencia.id }}"
+                                                    data-estudiante="{{ transferencia.apellidos }} {{ transferencia.nombres }}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                        <p>No hay historial de transferencias para el año {{ anio_lectivo_actual }}.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINACIÓN PARA HISTORIAL -->
+                {% if historial_transferencias.pages > 1 %}
+                <div class="card-footer mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            Mostrando {{ (historial_transferencias.page - 1) * historial_transferencias.per_page + 1 }} - 
+                            {{ historial_transferencias.page * historial_transferencias.per_page if historial_transferencias.page * historial_transferencias.per_page <= historial_transferencias.total else historial_transferencias.total }} 
+                            de {{ historial_transferencias.total }} registros
+                        </div>
+
+                        <nav aria-label="Paginación del historial">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item {% if not historial_transferencias.has_prev %}disabled{% endif %}">
+                                    <a class="page-link" 
+                                       href="{{ url_for('transferir.index', page_historial=historial_transferencias.prev_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+
+                                {% for page_num in historial_transferencias.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if page_num %}
+                                        <li class="page-item {% if page_num == historial_transferencias.page %}active{% endif %}">
+                                            <a class="page-link" 
+                                               href="{{ url_for('transferir.index', page_historial=page_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <li class="page-item {% if not historial_transferencias.has_next %}disabled{% endif %}">
+                                    <a class="page-link" 
+                                       href="{{ url_for('transferir.index', page_historial=historial_transferencias.next_num, curso=curso_filtrado, estado=estado_filtrado) }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal de Transferencia Individual -->
+    <div class="modal fade" id="modalTransferenciaIndividual" tabindex="-1" aria-labelledby="modalTransferenciaIndividualLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTransferenciaIndividualLabel">
+                        <i class="fas fa-exchange-alt me-2"></i>Transferir Estudiante
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('transferir.transferir_multiples') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="estudiantes_ids_json" id="matricula-id-individual">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Año Lectivo Destino</label>
+                            <select class="form-select" name="anio_destino" required>
+                                <option value="" disabled selected>Seleccione un año</option>
+                                {% for anio_config in todos_los_anios %}
+                                <option value="{{ anio_config.anio }}">{{ anio_config.anio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Curso Destino</label>
+                            <select class="form-select" name="curso_destino" id="curso-destino-individual" required>
+                                <option value="">Seleccione un curso</option>
+                                {% for curso in cursos %}
+                                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Observaciones sobre la transferencia"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Transferencia</label>
+                            <input type="date" class="form-control" name="fecha_transferencia" value="{{ datetime.now().strftime('%Y-%m-%d') }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Transferir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Transferencia Múltiple -->
+    <div class="modal fade" id="modalTransferenciaMultiple" tabindex="-1" aria-labelledby="modalTransferenciaMultipleLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTransferenciaMultipleLabel">
+                        <i class="fas fa-exchange-alt me-2"></i>Transferir Estudiantes
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('transferir.transferir_multiples') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="estudiantes_ids_json" id="matriculas_ids_multiple">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="contadorSeleccionados">Estudiantes seleccionados: 0</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Año Lectivo Destino</label>
+                            <select class="form-select" name="anio_destino" required>
+                                <option value="" disabled selected>Seleccione un año</option>
+                                {% for anio_config in todos_los_anios %}
+                                <option value="{{ anio_config.anio }}">{{ anio_config.anio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Curso Destino</label>
+                            <select class="form-select" name="curso_destino" id="curso-destino-multiple" required>
+                                <option value="">Seleccione un curso</option>
+                                {% for curso in cursos %}
+                                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Observaciones sobre la transferencia"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Transferencia</label>
+                            <input type="date" class="form-control" name="fecha_transferencia" value="{{ datetime.now().strftime('%Y-%m-%d') }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Transferir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Scripts -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../../static/js/modo_oscuro.js"></script>
+    <script src="../../../static/js/main.js"></script>
+    <script src="../../../static/js/views/estudiantes/transferir.js"></script>
+</body>
+
+</html>

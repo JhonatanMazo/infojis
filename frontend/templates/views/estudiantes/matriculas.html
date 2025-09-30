@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <!-- Filtros -->
+                <form method="GET" action="{{ url_for('matricula.listar_matricula') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Grado:</label>
+                                    {{ form.curso(class="form-select", id="select-curso") }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado:</label>
+                                    {{ form.estado(class="form-select", id="select-estado") }}
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100"><i
+                                            class="fas fa-filter me-1"></i>Filtrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Tabla -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Registro de Matrículas</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-users me-1 text-primary"></i>Estudiantes: {{ matriculas.total }}</span>
+                                <span class="badge bg-primary ms-2">Año lectivo: {{ anio_lectivo }}</span>
+                                {% if active_config.periodo_nombre %}
+                                <span class="badge bg-secondary ms-2">Periodo: {{ active_config.periodo_nombre }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('matricula.exportar_matricula', curso=request.args.get('curso'), estado=request.args.get('estado')) }}"
+                                class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalMatricula">
+                                <i class="fas fa-plus-circle me-1"></i> Nueva Matrícula
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Fecha Nacimiento</th>
+                                        <th>Documento</th>
+                                        <th>Telefono</th>
+                                        <th>Grado</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Matrícula</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if not matriculas.items %}
+                                   <tr>
+                                        <td colspan="11" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay matrículas registradas.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% for m in matriculas.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (matriculas.page - 1) * matriculas.per_page }}</td>
+                                        <td>
+                                            {% if m.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' ~ m.foto) }}"
+                                                alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="{{ url_for('static', filename='img/default-profile.png') }}"
+                                                    alt="Foto por defecto" class="rounded-circle bg-white"
+                                                    style="width:40px; height:40px; object-fit: cover;">
+                                            {% endif %}
+                                        </td>
+                
+                                        <td>{{ m.apellidos }}</td>
+                                        <td>{{ m.nombres }}</td>
+                                        <td>{{ m.fecha_nacimiento.strftime('%d/%m/%Y') }}</td>
+                                        <td>{{ m.documento }}</td>
+                                        <td>{{ m.telefono }}</td>
+                                        <td>{{ m.curso.nombre if m.curso }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if m.estado == 'activo' else 'danger' }}">
+                                                {{ m.estado }}
+                                            </span>
+                                        </td>
+                                        <td>{{ m.fecha_matricula.strftime('%d/%m/%Y') }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning me-1 btn-editar"
+                                                data-id="{{ m.id }}" 
+                                                data-nombres="{{ m.nombres }}" 
+                                                data-apellidos="{{ m.apellidos }}"
+                                                data-genero="{{ m.genero }}" 
+                                                data-documento="{{ m.documento }}"
+                                                data-telefono="{{ m.telefono }}" 
+                                                data-direccion="{{ m.direccion }}"
+                                                data-fecha-nacimiento="{{ m.fecha_nacimiento.strftime('%Y-%m-%d') }}"
+                                                data-id-curso="{{ m.id_curso }}" 
+                                                data-estado="{{ m.estado }}"
+                                                data-fecha-matricula="{{ m.fecha_matricula.strftime('%Y-%m-%d') }}"
+                                                data-email="{{ m.email }}" 
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalEditarMatricula">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+
+                                            <form action="{{ url_for('matricula.eliminar_matricula', id=m.id) }}"
+                                                id="formEliminarMatricula" method="POST" style="display: none;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            </form>
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger btn-eliminar-matricula"
+                                                data-id="{{ m.id }}" 
+                                                data-nombre="{{ m.nombres }} {{ m.apellidos }}"
+                                                aria-label="Eliminar matrícula">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-users me-1 text-primary"></i>
+                                Total: {{ matriculas.total }} registros |
+                                Mostrando:
+                                {{ (matriculas.page - 1) * matriculas.per_page + 1 }} -
+                                {{ matriculas.page * matriculas.per_page if matriculas.page * matriculas.per_page < matriculas.total else matriculas.total }} 
+                            </div>
+
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Página anterior -->
+                                    <li class="page-item {% if not matriculas.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('matricula.listar_matricula', page=matriculas.prev_num, estado=request.args.get('estado'), curso=request.args.get('curso')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <!-- Páginas numeradas -->
+                                    {% for page_num in matriculas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if page_num %}
+                                    <li class="page-item {% if page_num == matriculas.page %}active{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('matricula.listar_matricula', page=page_num, estado=request.args.get('estado'), curso=request.args.get('curso')) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Página siguiente -->
+                                    <li class="page-item {% if not matriculas.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('matricula.listar_matricula', page=matriculas.next_num, estado=request.args.get('estado'), curso=request.args.get('curso')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nueva Matrícula -->
+    <div class="modal fade" id="modalMatricula" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Nueva Matrícula</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('matricula.crear_matricula') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="año_lectivo" value="{{ anio_lectivo }}">
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombres</label>
+                                <input name="nombres" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Apellidos</label>
+                                <input name="apellidos" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Género</label>
+                                <select class="form-select" name="genero" required>
+                                    <option value="" selected disabled>Seleccione un género</option>
+                                    <option value="femenino">Femenino</option>
+                                    <option value="masculino">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Documento</label>
+                                <input name="documento" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" maxlength="20"
+                                    pattern="^[0-9]+$" title="Solo se permiten números" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Dirección</label>
+                                <input name="direccion" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo electrónico</label>
+                                <input type="email" class="form-control" name="email" required maxlength="120">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha de Nacimiento</label>
+                                <input name="fecha_nacimiento" type="date" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Grado</label>
+                                <select name="id_curso" class="form-select" required id="select-curso">
+                                    <option selected disabled>Seleccionar Curso</option>
+                                    {% for curso in cursos %}
+                                    <option value="{{ curso.id }}"
+                                        data-max="{{ active_config.max_estudiantes_por_aula if active_config is mapping else active_config['max_estudiantes_por_aula'] }}"
+                                        data-actual="{{ Matricula.contar_por_curso(curso.id) }}">
+                                        {{ curso.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select name="estado" class="form-select" required>
+                                    <option value="activo" selected>Activo</option>
+                                    <option value="retirado">Retirado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha de Matrícula</label>
+                                <input type="date" name="fecha_matricula" class="form-control"
+                                    value="{{ datetime.now().date().isoformat() }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Foto del estudiante</label>
+                                <input type="file" class="form-control" name="foto" accept="image/*">
+                                <small class="text-muted">Formatos permitidos: JPG, PNG (Máx. 2MB)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar Matrícula</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Matrícula -->
+    <div class="modal fade" id="modalEditarMatricula" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <form action="{{ url_for('matricula.editar_matricula', id=0) }}" 
+                enctype="multipart/form-data" 
+                method="POST"
+                id="form-editar">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="año_lectivo" id="edit-año-lectivo" value="{{ anio_lectivo }}">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Editar Matrícula</h5>
+                        <button type="button"class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <input type="hidden" name="id" id="edit-id">
+
+                        <div class="mb-3">
+                            <label class="form-label">Foto</label>
+                            <input name="foto" type="file" class="form-control" accept="image/*">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Nombres</label>
+                            <input type="text" name="nombres" id="edit-nombres" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Apellidos</label>
+                            <input type="text" name="apellidos" id="edit-apellidos" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Género</label>
+                            <select class="form-select" name="genero" id="edit-genero" required>
+                                <option value="femenino">Femenino</option>
+                                <option value="masculino">Masculino</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Documento</label>
+                            <input type="text" name="documento" id="edit-documento" class="form-control" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" name="telefono" id="edit-telefono" maxlength="20"
+                                pattern="^[0-9]+$" title="Solo se permiten números">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dirección</label>
+                            <input type="text" name="direccion" id="edit-direccion" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correo electrónico</label>
+                            <input type="email" class="form-control" name="email" id="edit-email" required
+                                maxlength="120">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de nacimiento</label>
+                            <input type="date" name="fecha_nacimiento" id="edit-fecha-nacimiento" class="form-control"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Grado</label>
+                            <select name="id_curso" id="edit-id-curso" class="form-select" required>
+                                {% for curso in cursos %}
+                                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estado</label>
+                            <select name="estado" id="edit-estado" class="form-select" required>
+                                <option value="activo">Activo</option>
+                                <option value="retirado">Retirado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de matrícula</label>
+                            <input type="date" name="fecha_matricula" id="edit-fecha-matricula" class="form-control"
+                                required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar cambios</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts de bootstrap -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/views/estudiantes/matriculas.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <form method="GET" action="{{ url_for('asignacion.index') }}">
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Curso:</label>
+                                    <select class="form-select" name="curso_id">
+                                        <option value="" {% if not curso_filtrado %}selected{% endif %}>Todos</option>
+                                        {% for curso in cursos %}
+                                        <option value="{{ curso.id }}" {% if curso.id==curso_filtrado %}selected{% endif
+                                            %}>{{ curso.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100"><i
+                                            class="fas fa-filter me-1"></i>Filtrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            <h5 class="card-title mb-0">Gestión de Asignación</h5>
+                                <span><i class="fas fa-users me-1 text-primary"></i>Total asignación: {{
+                                    asignaciones.total }}</span>
+                                <span class="badge bg-primary ms-2">Año lectivo: {{ anio_lectivo }}</span>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('asignacion.exportar_pdf', curso_id=curso_filtrado) }}"
+                               class="btn btn-outline-secondary me-2">
+                               <i class="fas fa-file-pdf me-1"></i>Exportar PDF
+                            </a>
+                            {% if current_user.rol == 'admin' %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#modalCrearAsignacion">
+                                    <i class="fas fa-plus-circle me-1"></i>Nueva Asignación
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Docente</th>
+                                        <th>Asignatura</th>
+                                        <th>Curso</th>
+                                        <th>Horas asignadas</th>
+                                        <th>Estado</th>
+                                        <th>Observaciones</th>
+                                        {% if current_user.rol == 'admin' %}
+                                        <th>Acciones</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if asignaciones.items %}
+                                        {% for asig in asignaciones.items %}
+                                        <tr>
+                                            <td>{{ loop.index + (asignaciones.page - 1) * asignaciones.per_page }}</td>
+                                            <td>
+                                                {% if asig.docente and asig.docente.get_profile_picture_url() %}
+                                                <img src="{{ asig.docente.get_profile_picture_url() }}"
+                                                    alt="Foto del docente" class="rounded-circle bg-white"
+                                                    style="width:40px; height:40px; object-fit: cover;">
+                                                {% else %}
+                                                <img src="{{ url_for('static', filename='img/default-profile.png') }}"
+                                                    alt="Foto por defecto" class="rounded-circle bg-white"
+                                                    style="width:40px; height:40px; object-fit: cover;">
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ asig.docente.nombre }} {{ asig.docente.apellidos }}</td>
+                                            <td>{{ asig.asignatura.nombre }}</td>
+                                            <td>{{ asig.curso.nombre }}</td>
+                                            <td>{{ asig.horas_impartidas or '-' }}</td>
+                                            <td>
+                                                {% if asig.estado == 'activo' %}
+                                                <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                <span class="badge bg-danger">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ asig.observaciones or '-' }}</td>
+                                            {% if current_user.rol == 'admin' %}
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-warning me-1" data-bs-toggle="modal"
+                                                    data-bs-target="#modalEditarAsignacion{{ asig.id }}"><i
+                                                            class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
+                                                    data-bs-target="#modalEliminarAsignacion{{ asig.id }}"><i
+                                                            class="fas fa-trash-alt"></i></button>
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                        <td colspan="10" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No se encontraron asignaciones.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% if asignaciones.items %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">Mostrando {{ start_index }}‑{{ end_index }} de {{
+                                asignaciones.total }} registros</div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item {% if not asignaciones.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('asignacion.index', page=asignaciones.prev_num, curso_id=curso_filtrado) }}"><i
+                                                    class="fas fa-chevron-left"></i></a>
+                                    </li>
+                                    {% for page_num in asignaciones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if page_num %}
+                                    <li class="page-item {% if page_num == asignaciones.page %}active{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('asignacion.index', page=page_num, curso_id=curso_filtrado) }}">{{
+                                            page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    <li class="page-item {% if not asignaciones.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('asignacion.index', page=asignaciones.next_num, curso_id=curso_filtrado) }}"><i
+                                                    class="fas fa-chevron-right"></i></a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- MODALES: colocados aquí, fuera de la tabla -->
+                {% for asig in asignaciones.items %}
+                {% if current_user.rol == 'admin' %}
+                <!-- Modal Eliminar -->
+                <div class="modal fade" id="modalEliminarAsignacion{{ asig.id }}" tabindex="-1"
+                    aria-labelledby="modalEliminarAsignacionLabel{{ asig.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content text-center">
+                            <form action="{{ url_for('asignacion.eliminar', id=asig.id) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-body py-5">
+                                    <i class="fas fa-exclamation-circle fa-3x text-warning mb-3"></i>
+                                    <h4 class="fw-bold mb-2">¿Eliminar asignación?</h4>
+                                    <p class="text-muted">Esta acción no se puede deshacer</p>
+                                </div>
+                                <div class="modal-footer justify-content-center border-0 pb-4">
+                                    <button type="submit" class="btn btn-danger me-2">Sí, eliminar</button>
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Editar -->
+                <div class="modal fade" id="modalEditarAsignacion{{ asig.id }}" tabindex="-1"
+                    aria-labelledby="modalEditarAsignacionLabel{{ asig.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="modalEditarAsignacionLabel{{ asig.id }}">Editar Asignación
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('asignacion.editar', id=asig.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <!-- DOCENTE -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Docente:</label>
+                                            <select class="form-select" name="select-docente" required>
+                                                {% for d in docentes %}
+                                                <option value="{{ d.id }}" {% if d.id==asig.id_docente %}selected{%
+                                                    endif %}>
+                                                    {{ d.nombre }} {{ d.apellidos }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <!-- ASIGNATURA -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Asignatura:</label>
+                                            <select class="form-select" name="select-asignatura" required>
+                                                {% for a in asignaturas %}
+                                                <option value="{{ a.id }}" {% if a.id==asig.id_asignatura %}selected{%
+                                                    endif %}>
+                                                    {{ a.nombre }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <!-- CURSO -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Curso:</label>
+                                            <select class="form-select" name="select-curso" required>
+                                                {% for c in cursos %}
+                                                <option value="{{ c.id }}" {% if c.id==asig.id_curso %}selected{% endif
+                                                    %}>
+                                                    {{ c.nombre }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <!-- ESTADO -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Estado:</label>
+                                            <select class="form-select" name="estado" required>
+                                                <option value="activo" {% if asig.estado=='activo' %}selected{% endif
+                                                    %}>Activo</option>
+                                                <option value="inactivo" {% if asig.estado=='inactivo' %}selected{%
+                                                    endif %}>Inactivo</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- HORAS IMPARTIDAS -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Horas impartidas:</label>
+                                            <input type="number" class="form-control" name="horas-impartidas" step="0.5" min="0" value="{{ asig.horas_impartidas or '' }}">
+                                        </div>
+
+                                        <!-- OBSERVACIONES -->
+                                        <div class="col-md-12">
+                                            <label class="form-label">Observaciones:</label>
+                                            <textarea class="form-control" name="observaciones"
+                                                rows="2">{{ asig.observaciones }}</textarea>
+                                        </div>
+
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-outline-primary">Guardar cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+
+                <!-- Modal para crear nueva asignación (FUERA DEL BUCLE) -->
+                {% if current_user.rol == 'admin' %}
+                <div class="modal fade" id="modalCrearAsignacion" tabindex="-1" aria-labelledby="modalCrearAsignacionLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="modalCrearAsignacionLabel">Nueva Asignación</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('asignacion.crear') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Docente:</label>
+                                            <select class="form-select" name="select-docente" required>
+                                                <option value="">Seleccione un docente</option>
+                                                {% for d in docentes %}
+                                                <option value="{{ d.id }}">{{ d.nombre }} {{ d.apellidos }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Asignatura:</label>
+                                            <select class="form-select" name="select-asignatura" required>
+                                                <option value="">Seleccione una asignatura</option>
+                                                {% for a in asignaturas %}
+                                                <option value="{{ a.id }}">{{ a.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Curso:</label>
+                                            <select class="form-select" name="select-curso" required>
+                                                <option value="">Seleccione un curso</option>
+                                                {% for c in cursos %}
+                                                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Horas impartidas:</label>
+                                            <input type="number" class="form-control" name="horas-impartidas" step="0.5" min="0">
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label">Observaciones:</label>
+                                            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

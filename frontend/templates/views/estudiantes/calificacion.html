@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Filtros -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form method="GET" class="row g-3" id="filtros-form">
+                            <div class="col-md-3">
+                                <label for="select-curso" class="form-label">Curso:</label>
+                                <select class="form-select" id="select-curso" name="curso">
+                                    <option value="" selected disabled>Seleccione un curso</option>
+                                    {% for curso in lista_cursos %}
+                                    <option value="{{ curso.id }}" {% if curso_seleccionado==curso.id %}selected{% endif
+                                        %}>{{ curso.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="select-asignatura" class="form-label">Asignatura:</label>
+                                <select class="form-select" id="select-asignatura" name="asignatura">
+                                    <option value="" selected disabled>Seleccione una asignatura</option>
+                                    {% if lista_asignaturas and lista_asignaturas|length > 0 %}
+                                    {% for asignatura in lista_asignaturas %}
+                                    <option value="{{ asignatura.id }}" {% if asignatura_seleccionada==asignatura.id
+                                        %}selected{% endif %}>{{ asignatura.nombre }}</option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filter-fecha" class="form-label">Fecha:</label>
+                                <input type="date" class="form-control" id="filter-fecha" name="fecha"
+                                    value="{{ fecha_seleccionada }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-outline-filter w-100"><i
+                                        class="fas fa-filter me-1"></i>Filtrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de Calificaciones -->
+                <form method="POST" action="{{ url_for('calificacion.guardar_calificaciones') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="curso" value="{{ curso_seleccionado }}">
+                    <input type="hidden" name="asignatura" value="{{ asignatura_seleccionada }}">
+                    <input type="hidden" name="fecha" value="{{ fecha_seleccionada }}">
+
+                    <div class="card shadow-sm">
+                        <div
+                            class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <div class="mb-3 mb-md-0">
+                                <h5 class="card-title mb-0">
+                                    {% if curso_seleccionado %}
+                                    {{ lista_cursos|selectattr('id', 'equalto',
+                                    curso_seleccionado)|map(attribute='nombre')|first }}
+                                    {% else %}
+                                    Selecciona un curso
+                                    {% endif %}
+                                </h5>
+                                <div class="text-muted small">
+                                    <span><i class="fas fa-users me-1 text-primary"></i> <span id="total-estudiantes">{{
+                                            estudiantes.total if estudiantes else 0 }}</span> estudiantes</span>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-8">
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-search text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="student-search-input"
+                                            name="busqueda" value="{{ request.args.get('busqueda', '') }}"
+                                            placeholder="Buscar por nombre" form="filtros-form">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <button class="btn btn-outline-primary w-100 w-md-auto" type="submit">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th scope="col">#</th>
+                                            <th scope="col">Foto</th>
+                                            <th scope="col">Apellidos</th>
+                                            <th scope="col">Nombres</th>
+                                            <th scope="col">N Documento</th>
+                                            <th scope="col">Calificación</th>
+                                            <th scope="col">Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-calificaciones">
+                                        {% if estudiantes and estudiantes.items %}
+                                        {% for est in estudiantes.items %}
+                                        <tr>
+                                            <td>{{ (estudiantes.page - 1) * estudiantes.per_page + loop.index }}</td>
+
+                                            <td>
+                                                {% if est.foto %}
+                                                <img src="{{ url_for('static', filename='uploads/profiles/' ~ est.foto) }}"
+                                                    alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                                {% else %}
+                                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                    alt="Foto por defecto" class="rounded-circle"
+                                                    style="width:40px; height:40px;">
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ est.apellidos }}</td>
+                                            <td>{{ est.nombres }}</td>
+                                            <td>{{ est.documento }}</td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm" min="0"
+                                                    max="20" step="0.1" name="calificacion_{{ est.id }}"
+                                                    value="{{ calificaciones_dict[est.id].nota if calificaciones_dict[est.id] is defined and calificaciones_dict[est.id].nota is not none else '' }}">
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn bg-info" data-bs-toggle="modal"
+                                                    data-bs-target="#modalObservaciones" data-id="{{ est.id }}">
+                                                    <i class="fas fa-comment-alt"></i>
+                                                </button>
+                                                <input type="hidden" name="observacion_{{ est.id }}"
+                                                    id="observacion_{{ est.id }}"
+                                                    value="{{ calificaciones_dict[est.id].observacion if calificaciones_dict[est.id] is defined and calificaciones_dict[est.id].observacion is not none else '' }}">
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <i class="fas fa-info-circle fa-2x mb-2"
+                                                        style="font-size: 2rem;"></i>
+                                                    <p class="mb-0">
+                                                        {% if not curso_seleccionado or not asignatura_seleccionada %}
+                                                        No hay estudiantes para mostrar. Aplique filtros para ver los resultados.
+                                                        {% else %}
+                                                        No hay estudiantes matriculados en este curso
+                                                        {% endif %}
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {% if estudiantes and estudiantes.pages >= 1 %}
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ (estudiantes.page - 1) * estudiantes.per_page + 1 }} - {{ (estudiantes.page
+                                - 1) * estudiantes.per_page + estudiantes.items|length }} de {{ estudiantes.total }}
+                                registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    {% if estudiantes.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('calificacion.index', 
+                                                page=estudiantes.prev_num,
+                                                curso=curso_seleccionado,
+                                                asignatura=asignatura_seleccionada,
+                                                fecha=fecha_seleccionada,
+                                                busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                    </li>
+                                    {% endif %}
+
+                                    {% for num in estudiantes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if num %}
+                                    <li class="page-item {% if num == estudiantes.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('calificacion.index', 
+                                                    page=num,
+                                                    curso=curso_seleccionado,
+                                                    asignatura=asignatura_seleccionada,
+                                                    fecha=fecha_seleccionada,
+                                                    busqueda=request.args.get('busqueda', '')) }}">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    {% endif %}
+                                    {% endfor %}
+
+                                    {% if estudiantes.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('calificacion.index', 
+                                                page=estudiantes.next_num,
+                                                curso=curso_seleccionado,
+                                                asignatura=asignatura_seleccionada,
+                                                fecha=fecha_seleccionada,
+                                                busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal para Observaciones -->
+            <div class="modal fade" id="modalObservaciones" tabindex="-1" aria-labelledby="modalObservacionesLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalObservacionesLabel">Observación</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form id="form-observacion">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="observacion-texto" class="form-label">Detalle:</label>
+                                    <textarea class="form-control" id="observacion-texto" rows="3"
+                                        placeholder="Ingrese observación" required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary"
+                                    data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts de bootstrap -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts personalizados-->
+    <script src="../../../static/js/modo_oscuro.js"></script>
+    <script src="../../../static/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectCurso = document.getElementById('select-curso');
+            const selectAsignatura = document.getElementById('select-asignatura');
+            const filtrosForm = document.getElementById('filtros-form');
+
+            const cursoSeleccionado = {{ curso_seleccionado|tojson }};
+            const asignaturaSeleccionada = {{ asignatura_seleccionada|tojson }};
+
+            const cargarAsignaturas = (cursoId, asignaturaId) => {
+                if (!cursoId) {
+                    selectAsignatura.innerHTML = '<option value="" selected disabled>Seleccione una asignatura</option>';
+                    return;
+                }
+
+                fetch(`/calificaciones/obtener_asignaturas?curso_id=${cursoId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        selectAsignatura.innerHTML = '<option value="" selected disabled>Seleccione una asignatura</option>';
+                        data.forEach(asignatura => {
+                            const option = document.createElement('option');
+                            option.value = asignatura.id;
+                            option.textContent = asignatura.nombre;
+                            if (asignatura.id == asignaturaId) {
+                                option.selected = true;
+                            }
+                            selectAsignatura.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error al cargar asignaturas:', error));
+            };
+
+            if (selectCurso) {
+                selectCurso.addEventListener('change', function () {
+                    cargarAsignaturas(this.value, null);
+                });
+            }
+
+            if (cursoSeleccionado) {
+                cargarAsignaturas(cursoSeleccionado, asignaturaSeleccionada);
+            }
+
+            // Lógica para el modal de observaciones
+            const modalObservaciones = document.getElementById('modalObservaciones');
+            const observacionTexto = document.getElementById('observacion-texto');
+            const formObservacion = document.getElementById('form-observacion');
+            let currentMatriculaId = null;
+
+            modalObservaciones.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                currentMatriculaId = button.getAttribute('data-id');
+                const hiddenInput = document.getElementById(`observacion_${currentMatriculaId}`);
+                observacionTexto.value = hiddenInput.value;
+            });
+
+            formObservacion.addEventListener('submit', function (event) {
+                event.preventDefault();
+                if (currentMatriculaId) {
+                    const hiddenInput = document.getElementById(`observacion_${currentMatriculaId}`);
+                    hiddenInput.value = observacionTexto.value;
+                    const modal = bootstrap.Modal.getInstance(modalObservaciones);
+                    modal.hide();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

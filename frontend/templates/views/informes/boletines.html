@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay móvil -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <!-- Filtros (Curso) -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Curso:</label>
+                                <select class="form-select" id="select-curso">
+                                    <option value="" selected disabled>Seleccionar Grado</option>
+                                    {% for c in cursos %}
+                                    <option value="{{ c.id }}" 
+                                        {{ 'selected' if c.id|string == (curso_seleccionado|string or '') else '' }}>
+                                        {{ c.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-outline-filter w-100" id="btn-filtrar"
+                                    data-url-base="{{ url_for('boletines.listar_boletines') }}">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap g-2">
+                        <div>
+                            <h5 class="card-title mb-0">Boletines Generados</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-file-alt me-1 text-primary"></i><strong>Total: </strong></span>
+                                <span id="total-boletines">{{ boletines|length }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-2">
+                            <div class="col-12 col-md-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="student-search-input" name="busqueda"
+                                        value="{{ request.args.get('busqueda', '') }}"
+                                        placeholder="Buscar por nombre" form="filtros-form">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <!-- Descargar todo -->
+                                <a id="btn-descargar-todo" class="btn btn-outline-secundary w-100 w-md-auto" href="#">
+                                    <i class="fas fa-file-archive me-1"></i> Descargar Todo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="tabla-boletines" class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Estudiante</th>
+                                        <th>Curso</th>
+                                        <th>Promedio</th>
+                                        <th>Fecha Generación</th>
+                                        <th>Generado por</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if boletines and boletines|length > 0 %}
+                                    {% for b in boletines %}
+                                    <tr>
+                                        <td>{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+                                        <td>
+                                            {% if b.matricula and b.matricula.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + b.matricula.foto) }}"
+                                                alt="Foto" class="rounded-circle" style="width:40px; height:40px; object-fit: cover;">
+                                            {% else %}
+                                            <img src="{{ url_for('static', filename='img/default-profile.png') }}"
+                                                alt="Foto por defecto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ b.estudiante_nombre }}</td>
+                                        <td>{{ b.curso_nombre }}</td>
+                                        <td>{{ "%.2f"|format(b.promedio or 0) }}</td>
+                                        <td>{{ b.fecha_creacion.strftime('%Y-%m-%d') if b.fecha_creacion else ''
+                                            }}</td>
+                                        <td>{{ b.creado_por }}</td>
+                                        <td class="text-center action-buttons">
+                                            <button type="button" class="btn btn-outline-info btn-ver-detalles" data-bs-toggle="modal"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalVerBoletin"
+                                                data-boletin-id="{{ b.id }}" title="Visualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <a class="btn btn-outline-success" href="{{ url_for('boletines.descargar_boletin_pdf', boletin_id=b.id) }}"
+                                                href="{{ url_for('boletines.descargar_boletin_pdf', boletin_id=b.id) }}"
+                                                title="Descargar PDF"
+                                                target="_self">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            {% if not curso_seleccionado %}
+                                            <i class="fas fa-info-circle fa-2x mb-2"
+                                                style="font-size: 2rem;"></i>
+                                            <p>No hay estudiantes para mostrar. Aplique filtros para ver los resultados.</p>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    {% if pagination %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando <span id="mostrando">{{ boletines|length }}</span> de <span
+                                    id="total-registros">{{ pagination.total }}</span> registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Página anterior -->
+                                    <li class="page-item" {% if not pagination.has_prev %}disabled{% endif %}>
+                                        <a class="page-link" href="{{ url_for('boletines.listar_boletines',
+                                                        page=pagination.prev_num,
+                                                        curso=request.args.get('curso', 'todos'),
+                                                        periodo=request.args.get('periodo', ''),
+                                                        busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    <!-- Páginas numeradas -->
+                                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if p %}
+                                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('boletines.listar_boletines',
+                                                            page=p,
+                                                            curso=request.args.get('curso', ''),
+                                                            periodo=request.args.get('periodo', ''),
+                                                            busqueda=request.args.get('busqueda', '')) }}">
+                                            {{ p }}
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    <!-- Página siguiente -->
+                                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('boletines.listar_boletines',
+                                                        page=pagination.next_num,
+                                                        curso=request.args.get('curso', 'todos'),
+                                                        periodo=request.args.get('periodo', ''),
+                                                        busqueda=request.args.get('busqueda', '')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Modal: Ver Detalles del Boletín -->
+            <div class="modal fade" id="modalVerBoletin" tabindex="-1" aria-labelledby="modalVerBoletinLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="modalVerBoletinLabel">Detalles del Boletín</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="boletin-details-content">
+                                <!-- Content will be loaded here via AJAX -->
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <a href="#" id="btn-descargar-boletin-modal" class="btn btn-outline-info"
+                                style="display:none"><i class="fas fa-download me-1"></i> Descargar PDF</a>
+                            <button type="button" id="btn-enviar-boletin-modal" class="btn btn-outline-primary"><i
+                                    class="fas fa-envelope me-1"></i> Enviar por Correo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Progreso de Descarga -->
+            <div class="modal fade" id="modalProgresoDescarga" tabindex="-1" aria-labelledby="modalProgresoDescargaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalProgresoDescargaLabel">Generando Archivo ZIP</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p id="progreso-texto">Iniciando la generación de boletines...</p>
+                            <div class="progress" style="height: 20px;"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts base -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Scripts del sistema -->
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/informes/boletines.js') }}"></script>
+
+</body>
+
+</html>

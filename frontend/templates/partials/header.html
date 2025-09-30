@@ -1,0 +1,55 @@
+<header class="header">
+    <button id="sidebar-toggle" class="header-menu-toggle" aria-label="Abrir menú">
+        <i class="fas fa-bars"></i>
+    </button>
+    <h4 class="name-garden">Jardín Infantil Sonrisas</h4>
+    <div class="d-flex align-items-center">
+        <!-- Notificaciones -->
+        <a href="{{ url_for('actividades.index') }}" class="btn position-relative me-3 notification-btn" title="Notificaciones">
+            <i class="fas fa-bell fa-lg text-warning notification-icon"></i>
+            {% if notificaciones_hoy and notificaciones_hoy > 0 and request.endpoint != 'actividades.index' %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
+                {{ notificaciones_hoy }}
+                <span class="visually-hidden"></span>
+            </span>
+            {% endif %}
+        </a>
+        <!-- Botón de modo oscuro -->
+        <button class="dark-mode-toggle m-0" id="darkModeToggle" aria-label="Cambiar modo oscuro">
+            <i class="fas fa-moon" id="darkModeIcon"></i>
+        </button>
+        <div class="dropdown user-profile" id="user-profile">
+            {% if current_user.foto %}
+            <img href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+            src="{{ current_user.get_profile_picture_url() or'img/default-profile.png'}}" alt="Foto"
+                class="user-avatar rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+            {% else %}
+            <img href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                alt="Foto de perfil" class="user-avatar">
+            {% endif %}
+
+            <a class="content-user dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <span class="user-name" id="user-name">{{ current_user.nombre.split(' ')[0] }} {{
+                    current_user.apellidos.split(' ')[0] }}</span>
+                <span class="user-role text-muted">{{ current_user.rol }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <li><a class="dropdown-item" href="/perfil/"><i class="far fa-user me-2"></i>Perfil de usuario</a></li>
+                {% if current_user.rol == 'admin' %}
+                <li><a class="dropdown-item" href="/configuracion/"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                {% endif %}
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <a id="cerrar-sesion" class="dropdown-item" href="#">
+                        <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>

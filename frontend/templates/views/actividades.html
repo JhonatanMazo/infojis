@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Contenido del módulo de Actividades -->
+            <div class="container-fluid py-4">
+                <!-- Filtros y acciones -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <form class="row g-3 mb-3" method="get">
+                                <div class="col-md-3">
+                                    <label class="form-label">Tipo:</label>
+                                    <select class="form-select" name="tipo">
+                                        <option value="">Todos los tipos</option>
+                                        <option value="matricula" {% if tipo=='matricula' %}selected{% endif %}>Matrícula</option>
+                                        <option value="asistencia" {% if tipo=='asistencia' %}selected{% endif %}>Asistencia</option>
+                                        <option value="calificacion" {% if tipo=='calificacion' %}selected{% endif %}>Calificacion</option>
+                                        <option value="inclusion" {% if tipo=='inclusion' %}selected{% endif %}>Inclusión</option>
+                                        <option value="pago" {% if tipo=='pago' %}selected{% endif %}>Pago</option>
+                                        <option value="observacion" {% if tipo=='observacion' %}selected{% endif %}>Observación</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha:</label>
+                                    <input type="date" class="form-control" name="fecha" value="{{ fecha or '' }}">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100">
+                                        <i class="fas fa-filter me-1"></i> Filtrar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Historial de Actividades</h5>
+                            <div class="text-muted small">
+                                <span>
+                                    <i class="fas fa-bell me-1 text-warning"></i>
+                                    Total registros: {{ total_visibles }}
+                                </span> |
+                                <span>
+                                    <i class="fas fa-calendar-alt me-1 text-primary"></i>
+                                    <strong>Año Lectivo: </strong><span id="anioLectivo">{{ anio_lectivo }}</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- En la sección del card-header donde está el botón "Eliminar Todas" -->
+                        <form action="{{ url_for('actividades.eliminar_todas_actividades') }}" method="post" class="mb-0" id="form-eliminar-todas" onsubmit="return confirm('¿Está seguro de que desea marcar todas las notificaciones visibles como leídas?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <!-- Campos ocultos para pasar los filtros actuales -->
+                            <input type="hidden" name="tipo" value="{{ tipo or '' }}">
+                            <input type="hidden" name="fecha" value="{{ fecha or '' }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash-alt me-1"></i> Eliminar Todas
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Tipo</th>
+                                        <th>Título</th>
+                                        <th>Detalle</th>
+                                        <th>Fecha</th>
+                                        <th>Creado por</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if actividades %}
+                                        {% for actividad in actividades %}
+                                        <tr>
+                                            <td>{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+                                            <td>
+                                                <span class="d-flex align-items-center">
+                                                    {% if actividad.tipo == 'matricula' %}
+                                                        <i class="fas fa-user-graduate text-primary me-1" title="Matrícula"></i>
+                                                    {% elif actividad.tipo == 'pago' %}
+                                                        <i class="fas fa-money-bill-wave text-success me-1" title="Pago"></i>
+                                                    {% elif actividad.tipo == 'observacion' %}
+                                                        <i class="fas fa-exclamation-triangle text-warning me-1" title="Observación"></i>
+                                                    {% elif actividad.tipo == 'docente' %}
+                                                        <i class="fas fa-chalkboard-teacher text-info me-1" title="Docente"></i>
+                                                    {% elif actividad.tipo == 'asistencia' %}
+                                                        <i class="fas fa-user-check text-secondary me-1" title="Asistencia"></i>
+                                                    {% elif actividad.tipo == 'inclusion' %}
+                                                        <i class="fas fa-wheelchair text-dark me-1" title="Inclusión"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-info-circle text-muted me-1" title="Otro"></i>
+                                                    {% endif %}
+                                                    <span class="text-capitalize">{{ actividad.tipo }}</span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold">{{ actividad.titulo }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="small text-muted">{{ actividad.detalle }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-dark">{{ actividad.fecha.strftime('%d/%m/%Y') if actividad.fecha else '' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="small">{{ actividad.creado_por }}</span>
+                                            </td>
+                                            <td>
+                                                {% if actividad.id and actividad.tipo %}
+                                                <form action="{{ url_for('actividades.eliminar_actividad', id=actividad.id) }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger btn-eliminar-actividad" data-titulo="{{ actividad.titulo }}">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            
+                                            <td colspan="7" class="text-center text-muted">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <i class="fas fa-info-circle fa-2x mb-2"
+                                                        style="font-size: 2rem;"></i>
+                                                    <p class="mb-0">No hay actividades registradas.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- PAGINACIÓN -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-bell me-1 text-warning"></i>
+                                Total: {{ total_visibles }} registros |
+                                Mostrando:
+                                {{ (pagination.page - 1) * pagination.per_page + 1 }}
+                                -
+                                {% if pagination.page * pagination.per_page > total_visibles %}
+                                    {{ total_visibles }}
+                                {% else %}
+                                    {{ pagination.page * pagination.per_page }}
+                                {% endif %}
+                            </div>
+
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('actividades.index', page=pagination.prev_num, tipo=tipo, fecha=fecha) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                                <a class="page-link"
+                                                href="{{ url_for('actividades.index', page=page_num, tipo=tipo, fecha=fecha) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                        href="{{ url_for('actividades.index', page=pagination.next_num, tipo=tipo, fecha=fecha) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/actividades.js') }}"></script>
+</body>
+</html>

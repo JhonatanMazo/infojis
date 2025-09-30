@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+  <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+  <meta name="author" content="Infojis">
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+  <title>Infojis</title> 
+
+  <!-- Bootstrap y estilos -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome con versión específica -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login-transiciones.css') }}">
+</head>
+<body>
+
+  <div class="login-container mx-auto mt-5">
+    <header class="login-header text-center mb-4">
+      <h1 class="login-title">Establecer Nueva Contraseña</h1>
+      <p class="login-subtitle">Por favor, ingresa tu nueva contraseña.</p>
+    </header>
+
+    <!-- Aquí se renderizan todos los mensajes flash -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="toast align-items-center text-bg-{{ category }} border-0 show mb-2"
+                 role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body">{{ message }}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast" aria-label="Cerrar"></button>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Formulario de restablecimiento -->
+    <form method="POST" action="{{ url_for('auth.reset_token', token=token) }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-floating mb-3 position-relative">
+  {{ form.password(class="form-control", placeholder="Nueva Contraseña", id="password", autocomplete="new-password") }}
+  <label for="password">Nueva Contraseña</label>
+  <span class="password-toggle position-absolute end-0 top-50 translate-middle-y me-3" 
+        data-target="password" role="button" tabindex="0" aria-label="Mostrar contraseña">
+    <i class="fa fa-eye-slash"></i>
+  </span>
+</div>
+
+<div class="form-floating mb-3 position-relative">
+  {{ form.confirm_password(class="form-control", placeholder="Confirmar Nueva Contraseña", id="confirm_password", autocomplete="new-password") }}
+  <label for="confirm_password">Confirmar Nueva Contraseña</label>
+  <span class="password-toggle position-absolute end-0 top-50 translate-middle-y me-3" 
+        data-target="confirm_password" role="button" tabindex="0" aria-label="Mostrar contraseña">
+    <i class="fa fa-eye-slash"></i>
+  </span>
+</div>
+
+
+      <div class="d-grid">
+        {{ form.submit(class="btn btn-login") }}
+      </div>
+    </form>
+  </div>
+
+  <!-- JS de Bootstrap -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js" defer></script>
+  <!-- Scripts personalizados -->    
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.password-toggle').forEach(function(toggle) {
+      const targetId = toggle.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      const icon = toggle.querySelector('i');
+
+      if (!input) return;
+      toggle.addEventListener('click', function () {
+        const isPwd = input.type === 'password';
+        input.type = isPwd ? 'text' : 'password';
+        icon.classList.toggle('fa-eye-slash', !isPwd);
+        icon.classList.toggle('fa-eye', isPwd);
+        input.focus();
+      });
+      toggle.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle.click();
+        }
+      });
+    });
+
+  // Inicializar toasts de Bootstrap
+  const toastList = [].slice.call(document.querySelectorAll('.toast'));
+  toastList.forEach(function(el) {
+    new bootstrap.Toast(el, { delay: 4000 }).show();
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form method="GET" action="{{ url_for('observacion.listar_observaciones') }}">
+                            <div class="row g-3">
+                                <!-- Curso -->
+                                <div class="col-md-3">
+                                    <label>Grado:</label>
+                                    <select name="curso" class="form-select">
+                                        <option value="todos">Todos</option>
+                                        {% for c in cursos %}
+                                        <option value="{{ c.id }}" {% if request.args.get('curso')==c.id|string
+                                            %}selected{% endif %}>
+                                            {{ c.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Tipo -->
+                                <div class="col-md-3">
+                                    <label>Tipo:</label>
+                                    <select name="tipo" class="form-select">
+                                        <option value="todos">Todos</option>
+                                        <option value="académica" {% if request.args.get('tipo')=='académica'
+                                            %}selected{% endif %}>Académica</option>
+                                        <option value="asistencia" {% if request.args.get('tipo')=='asistencia'
+                                            %}selected{% endif %}>Asistencia</option>
+                                        <option value="disciplinaria" {% if request.args.get('tipo')=='disciplinaria'
+                                            %}selected{% endif %}>Disciplinaria</option>
+                                    </select>
+                                </div>
+
+                                <!-- Botón de Filtrar -->
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100"><i
+                                            class="fas fa-filter me-1"></i>Filtrar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla con Bootstrap -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Registro de Observaciones</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-users me-1 text-primary"></i>Total registros: {{
+                                    observaciones.total }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('observacion.exportar_observaciones', curso=request.args.get('curso', 'todos'), tipo=request.args.get('tipo', 'todos')) }}"
+                                class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalCrearObservacion">
+                                <i class="fas fa-plus-circle me-1"></i> Nueva Observación
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Grado</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha</th>
+                                        <th>Descripción</th>
+                                        <th>Registrado por</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if not observaciones.items %}
+                                    <tr>
+                                        <td colspan="10" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay observaciones registradas.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% for obs in observaciones.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (observaciones.page - 1) * observaciones.per_page }}</td>
+                                        <td>
+                                            {% if obs.matricula.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + obs.matricula.foto) }}"
+                                                alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                alt="Foto por defecto" class="rounded-circle"
+                                                style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ obs.matricula.apellidos }}</td>
+                                        <td>{{ obs.matricula.nombres }}</td>
+                                        <td>{{ obs.matricula.curso.nombre }}</td>
+                                        <td>
+                                            {% if obs.tipo == 'académica' %}
+                                            <span class="badge bg-info text-capitalize">{{ obs.tipo }}</span>
+                                            {% elif obs.tipo == 'asistencia' %}
+                                            <span class="badge bg-warning text-dark text-capitalize">{{ obs.tipo
+                                                }}</span>
+                                            {% elif obs.tipo == 'disciplinaria' %}
+                                            <span class="badge bg-danger text-capitalize">{{ obs.tipo }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary text-capitalize">{{ obs.tipo }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ obs.fecha.strftime('%d/%m/%Y') }}</td>
+                                        <td class="text-truncate" style="max-width: 200px;">{{ obs.descripcion }}</td>
+                                        <td>{{ obs.usuario.nombre.split(' ')[0] }} {{obs.usuario.apellidos.split(' ')[0]}}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info me-1 btn-ver-detalles"
+                                                data-url="{{ url_for('static', filename='uploads/documents/' ~ obs.detalles) }}"
+                                                title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+
+                                            <button class="btn btn-sm btn-outline-warning me-1 btn-editar"
+                                                data-id="{{ obs.id }}" data-id-matricula="{{ obs.id_matricula }}"
+                                                data-id-curso="{{ obs.id_curso }}" data-tipo="{{ obs.tipo }}"
+                                                data-fecha="{{ obs.fecha }}" data-descripcion="{{ obs.descripcion }}"
+                                                data-detalles="{{ obs.detalles }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+
+                                            <form id="formEliminarObservacion-{{ obs.id }}"
+                                                action="{{ url_for('observacion.eliminar_observacion', id=obs.id) }}"
+                                                method="POST" style="display: none;">
+                                                {{ form_eliminar.csrf_token }}
+                                            </form>
+
+
+                                            {% if current_user.rol == 'admin' %}
+                                            <button class="btn btn-sm btn-outline-danger btn-eliminar-observacion"
+                                                data-id="{{ obs.id }}"
+                                                data-nombre="{{ obs.matricula.nombres }} {{ obs.matricula.apellidos }}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-eye me-1 text-primary"></i>
+                                Total: {{ observaciones.total }} registros |
+                                Mostrando:
+                                {{ (observaciones.page - 1) * observaciones.per_page + 1 }} -
+                                {{ observaciones.page * observaciones.per_page if observaciones.page *
+                                observaciones.per_page < observaciones.total else observaciones.total }} </div>
+
+                                    <nav aria-label="Paginación">
+                                        <ul class="pagination pagination-sm mb-0">
+                                            <li
+                                                class="page-item {% if not observaciones.has_prev %}disabled{% endif %}">
+                                                <a class="page-link"
+                                                    href="{{ url_for('observacion.listar_observaciones', page=observaciones.prev_num, curso=request.args.get('curso'), tipo=request.args.get('tipo')) }}">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </a>
+                                            </li>
+
+                                            {% for page_num in observaciones.iter_pages() %}
+                                            {% if page_num %}
+                                            <li
+                                                class="page-item {% if page_num == observaciones.page %}active{% endif %}">
+                                                <a class="page-link"
+                                                    href="{{ url_for('observacion.listar_observaciones', page=page_num, curso=request.args.get('curso'), tipo=request.args.get('tipo')) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                            {% else %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            {% endif %}
+                                            {% endfor %}
+
+                                            <li
+                                                class="page-item {% if not observaciones.has_next %}disabled{% endif %}">
+                                                <a class="page-link"
+                                                    href="{{ url_for('observacion.listar_observaciones', page=observaciones.next_num, curso=request.args.get('curso'), tipo=request.args.get('tipo')) }}">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </main>
+    </div>
+
+    <!-- Modal Crear Observación -->
+    <div class="modal fade" id="modalCrearObservacion" tabindex="-1" aria-labelledby="crearObservacionLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form id="form-crear-observacion" method="POST" enctype="multipart/form-data"
+                action="{{ url_for('observacion.crear_observacion') }}">
+                {{ form.csrf_token }}
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Registrar Observación</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <!-- Curso -->
+                        <div class="col-md-6">
+                            <label for="select-curso" class="form-label">Curso:</label>
+                            <select id="select-curso" name="id_curso" class="form-select" required>
+                                <option value="">Seleccione curso</option>
+                                {% for curso in cursos %}
+                                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Estudiante -->
+                        <div class="col-md-6">
+                            <label for="select-estudiante" class="form-label">Estudiante:</label>
+                            <select id="select-estudiante" name="id_matricula" class="form-select" required>
+                                <option value="">Seleccione estudiante</option>
+                            </select>
+                            <div class="mt-2 text-center">
+                                <img id="preview-foto" src="" class="rounded-circle border"
+                                    style="width: 80px; height: 80px; display: none;">
+                            </div>
+                        </div>
+
+                        <!-- Tipo -->
+                        <div class="col-md-6">
+                            <label for="tipo" class="form-label">Tipo:</label>
+                            <select name="tipo" id="tipo" class="form-select" required>
+                                <option value="">Seleccione tipo</option>
+                                <option value="académica">Académica</option>
+                                <option value="asistencia">Asistencia</option>
+                                <option value="disciplinaria">Disciplinaria</option>
+                            </select>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="col-md-6">
+                            <label for="fecha" class="form-label">Fecha:</label>
+                            <input type="date" name="fecha" id="fecha" class="form-control" required>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="col-12">
+                            <label for="descripcion" class="form-label">Descripción:</label>
+                            <textarea name="descripcion" id="descripcion" rows="3" class="form-control"
+                                required></textarea>
+                        </div>
+
+                        <!-- Detalles -->
+                        <div class="col-12">
+                            <label for="detalles" class="form-label">Archivo de soporte (opcional):</label>
+                            <input type="file" name="detalles" id="detalles" class="form-control">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Observación -->
+    <div class="modal fade" id="modalEditarObservacion" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" enctype="multipart/form-data" id="form-editar-observacion" class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Observación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Curso -->
+                    <div class="mb-3">
+                        <label>Curso:</label>
+                        <input type="text" id="edit-curso" class="form-control" disabled>
+                        <input type="hidden" name="id_curso" id="edit-curso-hidden">
+                    </div>
+
+                    <!-- Estudiante -->
+                    <div class="mb-3">
+                        <label>Estudiante:</label>
+                        <input type="text" id="edit-estudiante" class="form-control" disabled>
+                        <input type="hidden" name="id_matricula" id="edit-estudiante-hidden">
+                    </div>
+
+                    <!-- Tipo -->
+                    <div class="mb-3">
+                        <label for="edit-tipo">Tipo:</label>
+                        <select class="form-select" name="tipo" id="edit-tipo" required>
+                            <option value="">Seleccionar</option>
+                            <option value="académica">Académica</option>
+                            <option value="asistencia">Asistencia</option>
+                            <option value="disciplinaria">Disciplinaria</option>
+                        </select>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="mb-3">
+                        <label for="edit-fecha">Fecha:</label>
+                        <input type="date" class="form-control" name="fecha" id="edit-fecha" required>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="mb-3">
+                        <label for="edit-descripcion">Descripción:</label>
+                        <textarea class="form-control" name="descripcion" id="edit-descripcion" rows="3"
+                            required></textarea>
+                    </div>
+
+                    <!-- Archivo actual (solo si existe) -->
+                    <div class="mb-3" id="contenedor-archivo-actual" style="display: none;">
+                        <label>Archivo actual:</label>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span id="nombre-archivo-actual" class="me-2 text-truncate" style="max-width: 70%;"></span>
+                            <a href="#" id="link-archivo-actual" target="_blank" class="btn btn-sm btn-outline-info">Ver
+                                / Descargar</a>
+                        </div>
+                    </div>
+
+                    <!-- Nuevo archivo -->
+                    <div class="mb-3">
+                        <label for="edit-detalles">Adjuntar nuevo archivo (opcional):</label>
+                        <input type="file" name="detalles" id="edit-detalles" class="form-control">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-outline-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalles -->
+    <div class="modal fade" id="modalVerDetalles" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ver Detalles</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="iframe-detalles" width="100%" height="500px" style="display:none;"
+                        frameborder="0"></iframe>
+                    <div id="descargar-detalles" class="text-center mt-3" style="display:none;">
+                        <a id="download-link" class="btn btn-success" download target="_blank">Descargar archivo</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de bootstrap -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="../../static/js/views/estudiantes/observacion.js"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+</body>
+
+</html>

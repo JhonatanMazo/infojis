@@ -1,0 +1,261 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.scroll-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 0%;
+  background-color: #fd7e14;
+  z-index: 9999;
+  transition: width 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f97316, #ea580c);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ea580c, #c2410c);
+}
+
+.header-logo {
+  color: #fd7e14;
+  font-weight: 700;
+}
+
+h1,
+h2 {
+  font-weight: 600;
+}
+
+h2 {
+  color: #fd7e14;
+}
+
+.btn-download {
+  background-color: #fd7e14;
+  color: white;
+  border: none;
+  width: 50px;
+  height: 50px;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.btn-download:hover {
+  background-color: #e67312;
+  color: white;
+}
+
+.btn-back {
+  border-color: #fd7e14;
+  color: #fd7e14;
+}
+
+.btn-back:hover {
+  background-color: #fd7e14;
+  color: white;
+}
+
+footer {
+  background-color: #343a40;
+  color: #dee2e6;
+}
+
+/* Estilos específicos para PDF */
+.pdf-content {
+  background: white;
+  font-family: 'Times New Roman', serif;
+  line-height: 1.6;
+  color: #000;
+}
+
+.pdf-header {
+  border-bottom: 2px solid #fd7e14;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  text-align: center;
+}
+
+.pdf-logo {
+  font-size: 2.5rem;
+  color: #fd7e14;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.pdf-title {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pdf-subtitle {
+  color: #666;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.pdf-section {
+  margin-bottom: 25px;
+  page-break-inside: avoid;
+}
+
+.pdf-section h2 {
+  color: #fd7e14;
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  font-weight: bold;
+}
+
+.pdf-section p,
+.pdf-section li {
+  font-size: 18px;
+  line-height: 1.6;
+  text-align: justify;
+  margin-bottom: 10px;
+}
+
+.pdf-section ul,
+.pdf-section ol {
+  margin-left: 20px;
+  margin-bottom: 15px;
+}
+
+.pdf-section li {
+  margin-bottom: 8px;
+  padding-left: 5px;
+}
+
+.pdf-footer {
+  border-top: 2px solid #fd7e14;
+  margin-top: 40px;
+  padding-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+}
+
+.contact-info {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #fd7e14;
+}
+
+.document-info {
+  background-color: #fff8f0;
+  padding: 15px;
+  border-radius: 5px;
+  border: 1px solid #fd7e14;
+  margin-bottom: 30px;
+}
+
+.privacy-highlight {
+  background-color: #e3f2fd;
+  padding: 15px;
+  border-radius: 5px;
+  border-left: 4px solid #2196f3;
+  margin: 15px 0;
+}
+
+.rights-box {
+  background-color: #f3e5f5;
+  padding: 15px;
+  border-radius: 5px;
+  border-left: 4px solid #9c27b0;
+  margin: 15px 0;
+}
+
+.legal-reference {
+  background-color: #fff3e0;
+  padding: 10px;
+  border-radius: 3px;
+  font-style: italic;
+  font-size: 11px;
+  margin: 10px 0;
+}
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  .scroll-indicator,
+  .btn-download,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  .pdf-content {
+    margin: 0 !important;
+    padding: 20mm !important;
+  }
+
+  .pdf-section {
+    page-break-inside: avoid;
+  }
+}
+
+/* Toast personalizado */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 12000;
+}
+
+a {
+  overflow-wrap: anywhere;
+}
+
+
+
+
+
+
+/* En pantallas pequeñas (ej. celulares hasta 576px) */
+@media (max-width: 576px) {
+  body {
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1.5 !important;
+  }
+
+  h1, .pdf-title {
+    font-size: 1.5rem !important;/* más pequeño el título */
+  }
+
+  h2 {
+    font-size: 1.2rem !important;
+  }
+
+  h3 {
+    font-size: 1rem !important;
+  }
+  
+  li, p{
+    font-size: 0.8rem !important;
+  }
+}

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+    <style>
+    .btn-outline-secondary {
+            width: 100%;
+        }
+    @media (min-width: 576px) {
+        .btn-outline-secondary {
+            width: auto;
+        }
+    }
+    .student-avatar {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .badge-estado {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    .tooltip-inner {
+        max-width: 300px;
+        text-align: left;
+    }
+    .columna-estado {
+        display: none;
+    }
+    .mostrar-estado .columna-estado {
+        display: table-cell;
+    }
+    .info-aprobacion {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+        
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Filtros -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form id="formFiltros">
+                            <div class="row g-3">
+                                <div class="col-md-3">    
+                                    <label for="select-curso" class="form-label">Curso:</label>
+                                    <select class="form-select" id="select-curso" name="curso">
+                                        <option value="" selected disabled>Seleccione un curso</option>
+                                        {% for curso in cursos %}
+                                            <option value="{{ curso.id }}" {% if curso_seleccionado == curso.id %}selected{% endif %}>{{ curso.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Tipo de Documento:</label>
+                                    <select class="form-select" id="select-tipo-documento" name="tipo">
+                                        <option value="" selected disabled>Seleccionar tipo</option>
+                                        <option value="certificados" {% if tipo_documento == 'certificados' %}selected{% endif %}>Certificado de estudios</option>
+                                        <option value="constancias" {% if tipo_documento == 'constancias' %}selected{% endif %}>Constancias</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-filter w-100">
+                                        <i class="fas fa-filter me-1"></i> Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de Documentos -->
+                <div class="card shadow-sm {% if tipo_documento == 'certificados' %}mostrar-estado{% endif %}" id="tabla-documentos">
+                    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                        <div class="mb-3 mb-md-0">
+                            <h5 class="card-title mb-0">
+                                Documentos
+                            </h5>
+                            <div class="text-muted small">
+                                {% if curso_seleccionado and tipo_documento %}
+                                <span class="me-3"><i class="fas fa-file me-1 text-primary"></i><strong>Documentos: </strong>{{ matriculas.total }}</span>
+                                <span><i class="fas fa-folder me-1 text-primary"></i><strong>Tipo: </strong>
+                                    {% if tipo_documento == 'certificados' %}Certificado de estudios{% elif tipo_documento == 'constancias' %}Constancias{% else %}Sin especificar{% endif %}
+                                </span>
+                                {% if tipo_documento == 'certificados' %}
+                                {% set config_libro = ConfiguracionLibro.obtener_configuracion_actual() %}
+                                <span class="info-aprobacion ms-2">
+                                    <i class="fas fa-info-circle text-primary me-1"></i>Nota aprobación: {{ config_libro.nota_basico }}
+                                </span>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-warning"><i class="fas fa-info-circle me-1"></i>Seleccione un curso y tipo de documento para ver los estudiantes</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if curso_seleccionado and tipo_documento %}
+                        <div class="row g-2">
+                            <div class="col-12 col-md-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="student-search-input" placeholder="Buscar estudiante">
+                                </div>
+                            </div>
+                             <div class="col-12 col-md-5">
+                                    <a id="btn-descargar-todo" href="#" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Descargar todos los documentos en un ZIP.">
+                                        <i class="fas fa-file-zipper me-1"></i> Descargar Todo
+                                    </a>
+                                </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if curso_seleccionado and tipo_documento %}
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th>Curso</th>
+                                        <th class="columna-estado">Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for matricula in matriculas.items %}
+                                    {% set aprobado, promedio = verificar_aprobacion_estudiante(matricula.id) %}
+                                    <tr>
+                                        <td>{{ loop.index + (matriculas.page-1)*matriculas.per_page }}</td>
+                                        <td>
+                                            {% if matricula.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + matricula.foto) }}" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                alt="Foto por defecto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ matricula.apellidos }}</td>
+                                        <td>{{ matricula.nombres }}</td>
+                                        <td>{{ matricula.documento }}</td>
+                                        <td>{{ matricula.curso.nombre if matricula.curso else 'Sin curso' }}</td>
+                                        <td class="columna-estado">
+                                            {% if aprobado %}
+                                                <span class="badge bg-success badge-estado" data-bs-toggle="tooltip" title="Estudiante aprobado con promedio {{ promedio }}">
+                                                    <i class="fas fa-check-circle me-1"></i>Aprobado ({{ promedio }})
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger badge-estado" data-bs-toggle="tooltip" title="Estudiante no aprobado. Promedio: {{ promedio }}">
+                                                    <i class="fas fa-times-circle me-1"></i>No Aprobado ({{ promedio }})
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if tipo_documento == 'certificados' %}
+                                                {% if aprobado %}
+                                                <a href="{{ url_for('documentos.generar_documento', matricula_id=matricula.id, tipo=tipo_documento) }}" 
+                                                   class="btn btn-sm btn-outline-success" target="_self"
+                                                   data-bs-toggle="tooltip" title="Descargar certificado de estudios">
+                                                    <i class="fas fa-graduation-cap me-1"></i> Certificado
+                                                </a>
+                                                {% else %}
+                                                <button class="btn btn-sm btn-outline-secondary" disabled
+                                                        data-bs-toggle="tooltip" title="Estudiante no aprobado. No puede generar certificado">
+                                                    <i class="fas fa-graduation-cap me-1"></i> Certificado
+                                                </button>
+                                                {% endif %}
+                                            {% else %}
+                                                <a href="{{ url_for('documentos.generar_documento', matricula_id=matricula.id, tipo=tipo_documento) }}" 
+                                                   class="btn btn-sm btn-outline-warning" target="_self"
+                                                   data-bs-toggle="tooltip" title="Descargar constancia de matrícula">
+                                                    <i class="fas fa-file-alt me-1"></i> Constancia
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5">
+                                            <i class="fas fa-file-alt fa-3x mb-3"></i>
+                                            <p>No se encontraron estudiantes con los filtros seleccionados</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if matriculas and matriculas.pages >= 1 %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                Mostrando {{ matriculas.first }} a {{ matriculas.last }} de {{ matriculas.total }} registros
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    {% if matriculas.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('documentos.listar_documentos', page=matriculas.prev_num, curso=curso_seleccionado, tipo=tipo_documento) }}"><i class="fas fa-chevron-left"></i></a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                    </li>
+                                    {% endif %}
+
+                                    {% for page_num in matriculas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                        {% if page_num %}
+                                            {% if page_num == matriculas.page %}
+                                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                            {% else %}
+                                            <li class="page-item"><a class="page-link" href="{{ url_for('documentos.listar_documentos', page=page_num, curso=curso_seleccionado, tipo=tipo_documento) }}">{{ page_num }}</a></li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if matriculas.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('documentos.listar_documentos', page=matriculas.next_num, curso=curso_seleccionado, tipo=tipo_documento) }}"><i class="fas fa-chevron-right"></i></a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Documento</th>
+                                        <th>Curso</th>
+                                        <th class="columna-estado">Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">
+                                                    {% if not curso_seleccionado or not tipo_documento %}
+                                                    No hay estudiantes para mostrar. Aplique filtros para ver los resultados.
+                                                    {% else %}
+                                                    No hay estudiantes matriculados en este curso
+                                                    {% endif %}
+                                                </p>
+
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Progreso de Descarga (Compartido) -->
+    <div class="modal fade" id="modalProgresoDescarga" tabindex="-1" aria-labelledby="modalProgresoDescargaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProgresoDescargaLabel">Generando Archivo ZIP</h5>
+                    <!-- El botón de cerrar se oculta, la cancelación es con el botón "Cancelar" -->
+                </div>
+                <div class="modal-body">
+                    <p id="progreso-texto">Iniciando la generación de documentos...</p>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Botón para cancelar el proceso antes de que la descarga comience -->
+                    <button type="button" class="btn btn-outline-danger" id="btn-cancelar-descarga">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+            
+    <!-- Scripts de bootstrap -->        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts personalizados-->        
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    
+    <script>
+        // Filtrado de estudiantes
+        $(document).ready(function() {
+            $('#student-search-input').on('keyup', function() {
+                const value = $(this).val().toLowerCase();
+                $('table tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+
+            // Inicializar tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Lógica para el botón de descargar todo
+            const btnDescargarTodo = document.getElementById('btn-descargar-todo');
+            const selectCurso = document.getElementById('select-curso');
+            const selectTipo = document.getElementById('select-tipo-documento');
+
+            function actualizarEnlaceDescarga() {
+                const cursoId = selectCurso.value;
+                const tipoDoc = selectTipo.value;
+
+                if (cursoId && tipoDoc) {
+                    const url = `/documentos/descargar_todos/${tipoDoc}?curso=${cursoId}`;
+                    btnDescargarTodo.href = url;
+                    btnDescargarTodo.classList.remove('disabled');
+                } else {
+                    btnDescargarTodo.href = '#';
+                    btnDescargarTodo.classList.add('disabled');
+                }
+            }
+
+            selectCurso.addEventListener('change', actualizarEnlaceDescarga);
+            selectTipo.addEventListener('change', actualizarEnlaceDescarga);
+            actualizarEnlaceDescarga(); // Llamar al cargar la página
+            
+            btnDescargarTodo.addEventListener('click', function(e) {
+                e.preventDefault();
+                const progresoModal = new bootstrap.Modal(document.getElementById('modalProgresoDescarga'));
+                const progressBar = document.querySelector('#modalProgresoDescarga .progress-bar');
+                const progresoTexto = document.getElementById('progreso-texto');
+                progresoModal.show();
+                let progreso = 0;
+                const intervalo = setInterval(() => {
+                    progreso += 5;
+                    progressBar.style.width = `${progreso}%`;
+                    progresoTexto.textContent = `Generando documentos... ${progreso}%`;
+                    if (progreso >= 100) {
+                        clearInterval(intervalo);
+                        window.location.href = btnDescargarTodo.href;
+                        setTimeout(() => progresoModal.hide(), 1000);
+                    }
+                }, 200);
+            });
+        });
+    </script>
+</body>
+</html>

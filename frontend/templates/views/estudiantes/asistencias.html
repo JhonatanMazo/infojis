@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+            <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+
+            {% include 'partials/header.html' %}
+            
+
+
+            <!-- Filtros -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <form method="get" class="row g-3" id="form-filtros">
+                            <div class="col-md-3">
+                                <label for="select-curso" class="form-label">Curso:</label>
+                                <select class="form-select" id="select-curso" name="curso">
+                                    <option value="" selected disabled>Seleccione un curso</option>
+                                    {% for curso in lista_cursos %}
+                                    <option value="{{ curso.id }}" {% if request.args.get('curso')==curso.id|string
+                                        %}selected{% endif %}>{{ curso.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="select-asignatura" class="form-label">Asignatura:</label>
+                                <select class="form-select" id="select-asignatura" name="asignatura">
+                                    <option value="" selected disabled>Seleccione una asignatura</option>
+                                    {% for asignatura in lista_asignaturas %}
+                                    <option value="{{ asignatura.id }}" {% if
+                                        request.args.get('asignatura')==asignatura.id|string %}selected{% endif %}>{{
+                                        asignatura.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filter-fecha" class="form-label">Fecha:</label>
+                                <input type="date" class="form-control" id="filter-fecha" name="fecha"
+                                    value="{{ request.args.get('fecha', fecha.strftime('%Y-%m-%d') if fecha else '') }}">
+                            </div>
+
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-outline-filter w-100"><i
+                                        class="fas fa-filter me-1"></i>Filtrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de Asistencias -->
+                <div class="card shadow-sm">
+                    <div
+                        class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                        <div>
+                            <h5 class="card-title mb-0">
+                                {% if curso_seleccionado %}
+                                {{ curso_seleccionado.nombre }}
+                                {% else %}
+                                Selecciona un curso
+                                {% endif %}
+                            </h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-users me-1 text-primary"></i> <span id="total-estudiantes">{{
+                                        estudiantes.total if estudiantes else 0 }}</span> estudiantes</span>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-12 col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="student-search-input" name="busqueda"
+                                        value="{{ request.args.get('busqueda', '') }}"
+                                        placeholder="Buscar por nombre" form="form-filtros">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <button type="button" class="btn btn-outline-primary w-100 w-md-auto" id="guardar">Guardar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Foto</th>
+                                        <th scope="col">Apellidos</th>
+                                        <th scope="col">Nombres</th>
+                                        <th scope="col">Documento</th>
+                                        <th scope="col">Asistencias</th>
+                                        <th scope="col">Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-asistencias">
+                                    {% if estudiantes.items %}
+                                    {% for estudiante in estudiantes.items %}
+                                    <tr>
+                                        <td>{{ loop.index + ((estudiantes.page - 1) * estudiantes.per_page) }}</td>
+                                        <td>
+                                            {% if estudiante.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' ~ estudiante.foto) }}"
+                                                alt="Foto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                alt="Foto por defecto" class="rounded-circle"
+                                                style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ estudiante.apellidos}}</td>
+                                        <td>{{ estudiante.nombres }}</td>
+                                        <td> {{ estudiante.documento }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <select class="form-select form-select-sm attendance-select"
+                                                    data-matricula-id="{{ estudiante.id }}"
+                                                    aria-label="Estado de asistencia">
+                                                    <option value="">Seleccione asistencia</option>
+                                                    <option value="presente" {% if asistencias_dict.get(estudiante.id,
+                                                        {}).estado=='presente' %}selected{% endif %}>
+                                                        Presente
+                                                    </option>
+                                                    <option value="ausente" {% if asistencias_dict.get(estudiante.id,
+                                                        {}).estado=='ausente' %}selected{% endif %}>
+                                                        Ausente
+                                                    </option>
+                                                    <option value="justificado" {% if
+                                                        asistencias_dict.get(estudiante.id, {}).estado=='justificado'
+                                                        %}selected{% endif %}>
+                                                        Justificado
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center align-items-center">
+                                                <button class="btn bg-info" data-bs-toggle="modal"
+                                                    data-bs-target="#modalObservaciones"
+                                                    data-matricula-id="{{ estudiante.id }}"
+                                                    data-asistencia-id="{{ asistencias_dict.get(estudiante.id, {}).id }}"
+                                                    data-nombre="{{ estudiante.nombres }} {{ estudiante.apellidos or '' }}"
+                                                    data-observacion="{{ asistencias_dict.get(estudiante.id, {}).observaciones or '' }}"
+                                                    title="Agregar/editar observación">
+                                                    <i class="fas fa-comment-alt"></i>
+                                                </button>
+                                                <input type="hidden" name="observacion_{{ estudiante.id }}"
+                                                    id="observacion_{{ estudiante.id }}"
+                                                    value="{{ asistencias_dict.get(estudiante.id, {}).observaciones or '' }}">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                 <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">
+                                                    {% if not curso_seleccionado or not asignatura_seleccionada %}
+                                                    No hay estudiantes para mostrar. Aplique filtros para ver los resultados.
+                                                    {% else %}
+                                                    No hay estudiantes matriculados en este curso
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if estudiantes and estudiantes.pages >= 1 %}
+                    <div class="card-footer d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            Mostrando {{ (estudiantes.page - 1) * estudiantes.per_page + 1 }} - {{ (estudiantes.page -
+                            1) *
+                            estudiantes.per_page + estudiantes.items|length }} de {{ estudiantes.total }} registros
+                        </div>
+                        <nav aria-label="Paginación de resultados">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item {% if not estudiantes.has_prev %}disabled{% endif %}">
+                                    <a class="page-link"
+                                        href="{{ url_for('asistencias.listar_asistencias', page=estudiantes.prev_num, curso=request.args.get('curso'), asignatura=request.args.get('asignatura'), fecha=request.args.get('fecha'), busqueda=request.args.get('busqueda', '')) }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                {% for page_num in estudiantes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                {% if page_num %}
+                                <li class="page-item {% if page_num == estudiantes.page %}active{% endif %}">
+                                    <a class="page-link"
+                                        href="{{ url_for('asistencias.listar_asistencias', page=page_num, curso=request.args.get('curso'), asignatura=request.args.get('asignatura'), fecha=request.args.get('fecha'), busqueda=request.args.get('busqueda', '')) }}">{{
+                                        page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                {% endfor %}
+                                <li class="page-item {% if not estudiantes.has_next %}disabled{% endif %}">
+                                    <a class="page-link"
+                                        href="{{ url_for('asistencias.listar_asistencias', page=estudiantes.next_num, curso=request.args.get('curso'), asignatura=request.args.get('asignatura'), fecha=request.args.get('fecha'), busqueda=request.args.get('busqueda', '')) }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Observaciones -->
+    <div class="modal fade" id="modalObservaciones" tabindex="-1" aria-labelledby="modalObservacionesLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalObservacionesLabel">Observación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-observacion">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="observacion-texto" class="form-label">Detalle:</label>
+                            <textarea class="form-control" id="observacion-texto" rows="3"
+                                placeholder="Ingrese observación" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-outline-primary w-auto">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include 'partials/messages-flask.html' %}
+
+    <!-- Scripts de Bootstrap y personalizados -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/estudiantes/asistencias.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('student-search-input');
+        const form = document.getElementById('form-filtros');
+
+        if (searchInput && form) {
+            searchInput.addEventListener('keypress', function(e) {
+                // Si se presiona "Enter"
+                if (e.key === 'Enter') {
+                    // Prevenir el comportamiento por defecto del formulario (que podría ser recargar)
+                    e.preventDefault();
+                    // Enviar el formulario
+                    form.submit();
+                }
+            });
+        }
+    });
+    </script>
+
+</body>
+</html>

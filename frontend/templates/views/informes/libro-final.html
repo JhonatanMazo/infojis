@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión académica INFOJIS">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <!-- Filtros -->
+            <div class="container-fluid py-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Grado:</label>
+                                <select class="form-select" id="select-grado">
+                                    <option selected disabled>Seleccionar Grado</option>
+                                    {% for curso in cursos %}
+                                    <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-outline-filter w-100" id="btn-filtrar">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Libro Final de Calificaciones</h5>
+                            <div class="text-muted small">
+                                <span class="me-3"><i class="fas fa-graduation-cap me-1 text-primary"></i>Total
+                                    Estudiantes: <span id="total-estudiantes">0</span></span>
+                                <span class="me-3"><i class="fas fa-check-circle me-1 text-success"></i>Aprobados: <span
+                                        id="total-aprobados">0</span></span>
+                                <span><i class="fas fa-times-circle me-1 text-danger"></i>No Aprobados: <span
+                                        id="total-no-aprobados">0</span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" id="btn-exportar">
+                                <i class="fas fa-file-pdf me-1"></i> Exportar
+                            </button>
+                            {% if current_user.rol == 'admin' %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalConfiguracionLibro">
+                                <i class="fas fa-cog me-1"></i> Configurar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>N°</th>
+                                        <th>Foto</th>
+                                        <th>Estudiante</th>
+                                        <th>Documento</th>
+                                        <th>Promedio</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-libro-final">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted p-4">
+                                            {% if not curso_seleccionado %}
+                                            <i class="fas fa-info-circle fa-2x mb-2"
+                                                style="font-size: 2rem;"></i>
+                                            <p>No hay estudiantes para mostrar. Aplique filtros para ver los resultados.</p>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer" id="pagination-container">
+                        <!-- Pagination will be rendered here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Configuración (SIMPLIFICADO) -->
+    <div class="modal fade" id="modalConfiguracionLibro" tabindex="-1" aria-labelledby="modalConfiguracionLibroLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #ff6600; color: white;">
+                    <h5 class="modal-title" id="modalConfiguracionLibroLabel" style="color: #fff">
+                        <i class="fas fa-cog me-2"></i><span>Configurar Nivel de Aprobación</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formConfigLibro" novalidate>
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="config-nota-superior" class="form-label">Nota Superior (ej. 4.5):</label>
+                            <input type="number" class="form-control" id="config-nota-superior"
+                                name="nota_superior" value="4.5" min="0" max="5" step="0.1" required>
+                            <div class="form-text">Nota mínima para el desempeño "Superior".</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="config-nota-alto" class="form-label">Nota Alto (ej. 4.0):</label>
+                            <input type="number" class="form-control" id="config-nota-alto"
+                                name="nota_alto" value="4.0" min="0" max="5" step="0.1" required>
+                            <div class="form-text">Nota mínima para el desempeño "Alto".</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="config-nota-basico" class="form-label">Nota Básico (ej. 3.0):</label>
+                            <input type="number" class="form-control" id="config-nota-basico"
+                                name="nota_basico" value="3.0" min="0" max="5" step="0.1" required>
+                            <div class="form-text">Nota mínima para el desempeño "Básico".</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="btn-guardar-config">
+                        <i class="fas fa-save me-1"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exportación -->
+    <div class="modal fade" id="modalExportacion" tabindex="-1" aria-labelledby="modalExportacionLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #ff6600; color: white;">
+                    <h5 class="modal-title" id="modalExportacionLabel" style="color: #fff">
+                        <i class="fas fa-file-export me-2"></i><span>Exportar Libro Final</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Seleccione el formato de exportación:</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-success" onclick="exportarExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="exportarPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>Exportar a PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalle del Estudiante -->
+    <div class="modal fade" id="modalDetalleEstudiante" tabindex="-1" aria-labelledby="modalDetalleEstudianteLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalDetalleEstudianteLabel">
+                        <i class="fas fa-user-graduate me-2"></i> Detalle del Estudiante
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script>
+        const initialData = {{ initial_data | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/views/informes/libro_final.js') }}"></script>
+</body>
+
+</html>

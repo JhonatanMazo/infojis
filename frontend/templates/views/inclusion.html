@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+            {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+            {% include 'partials/sidebar-docente.html' %}
+            {% endif %}
+        </nav>
+        
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+
+        
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+
+            <div class="container-fluid py-4">
+                <!-- Filtros -->
+                <form method="GET" action="{{ url_for('inclusion.listar_inclusiones') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Grado:</label>
+                                    {{ form.curso(class="form-select", id="select-curso") }}
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-outline-filter w-100" type="submit">
+                                        <i class="fas fa-filter me-1"></i> Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+
+                <!-- Tabla de Inclusión -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Registro de Inclusiones</h5>
+                            <div class="text-muted small">
+                                <span><i class="fas fa-users me-1 text-primary"></i>Total registros: {{
+                                    inclusiones.total }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('inclusion.exportar_inclusiones', curso=request.args.get('curso')) }}"
+                                class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </a>
+
+                            {% if current_user.rol == 'admin' %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#modalInclusion">
+                                <i class="fas fa-plus-circle me-1"></i> Nueva Inclusión
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Foto</th>
+                                        <th>Apellidos</th>
+                                        <th>Nombres</th>
+                                        <th>Grado</th>
+                                        <th>Necesidad</th>
+                                        <th>Plan de Apoyo</th>
+                                        <th>Fecha Ingreso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if not inclusiones.items %}
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay inclusiones registradas.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    {% for i in inclusiones.items %}
+                                    <tr>
+                                        <td>{{ loop.index + (inclusiones.page - 1) * inclusiones.per_page }}</td>
+
+                                        <!-- Foto -->
+                                        <td>
+                                            {% if i.matricula.foto %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' ~ i.matricula.foto) }}"
+                                                class="rounded-circle" style="width:40px; height:40px;">
+                                            {% else %}
+                                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNmNmY2ZjYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CjxjaXJjbGUgY3g9IjEwIiBjeT0iNyIgcj0iNCIgZmlsbD0iIzk5OTk5OSIvPgo8cGF0aCBkPSJNMiAxOGMwLTMuMzE0IDIuNjg2LTYgNi02aDRjMy4zMTQgMCA2IDIuNjg2IDYgNiIgZmlsbD0iIzk5OTk5OSIvPgo8L2c+Cjwvc3ZnPg=="
+                                                     alt="Foto por defecto" class="rounded-circle" style="width:40px; height:40px;">
+                                            {% endif %}
+                                        </td>
+
+
+                                        <!-- Datos -->
+                                        <td>{{ i.matricula.apellidos }}</td>
+                                        <td>{{ i.matricula.nombres }}</td>
+                                        <td>{{ i.curso.nombre }}</td>
+                                        <td>{{ i.tipo_necesidad }}</td>
+                                        <td>{{ i.plan_apollo[:40] }}{% if i.plan_apollo|length > 40 %}...{% endif %}
+                                        </td>
+                                        <td>{{ i.fecha_ingreso.strftime('%d/%m/%Y') }}</td>
+
+                                        <!-- Acciones -->
+
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info me-1 btn-ver-detalles"
+                                                data-url="{{ url_for('static', filename='uploads/documents/' ~ i.detalles) }}"
+                                                data-bs-toggle="modal" data-bs-target="#modalVerDetalles"
+                                                title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+
+                                            {% if current_user.rol == 'admin' %}
+                                            <button class="btn btn-sm btn-outline-warning me-1 btn-editar"
+                                                data-id="{{ i.id }}" data-id-matricula="{{ i.id_matricula }}"
+                                                data-id-curso="{{ i.id_curso }}" data-tipo="{{ i.tipo_necesidad }}"
+                                                data-plan="{{ i.plan_apollo }}"
+                                                data-fecha-ingreso="{{ i.fecha_ingreso.strftime('%Y-%m-%d') }}"
+                                                data-foto="{{ i.foto }}" data-detalles="{{ i.detalles }}"
+                                                data-bs-toggle="modal" data-bs-target="#modalEditarInclusion">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form id="formEliminarInclusion" method="POST" style="display: none;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            </form>
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger btn-eliminar-inclusion"
+                                                data-id="{{ i.id }}"
+                                                data-nombre="{{ i.matricula.nombres }} {{ i.matricula.apellidos }}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-users me-1 text-primary"></i>
+                                Total: {{ inclusiones.total }} registros |
+                                Mostrando:
+                                {{ (inclusiones.page - 1) * inclusiones.per_page + 1 }} -
+                                {{ inclusiones.page * inclusiones.per_page if inclusiones.page * inclusiones.per_page }}
+                            </div>
+
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item {% if not inclusiones.has_prev %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('inclusion.listar_inclusiones', page=inclusiones.prev_num, curso=request.args.get('curso')) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    {% for page_num in inclusiones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                                    {% if page_num %}
+                                    <li class="page-item {% if page_num == inclusiones.page %}active{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('inclusion.listar_inclusiones', page=page_num, curso=request.args.get('curso')) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+
+                                    <li class="page-item {% if not inclusiones.has_next %}disabled{% endif %}">
+                                        <a class="page-link"
+                                            href="{{ url_for('inclusion.listar_inclusiones', page=inclusiones.next_num, curso=request.args.get('curso')) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+        </main>
+    </div>
+
+    <!-- Modal Nueva Inclusión -->
+    <div class="modal fade" id="modalInclusion" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('inclusion.crear_inclusion') }}" enctype="multipart/form-data"
+                class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Registrar Inclusión</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label>Grado:</label>
+                        <select class="form-select" name="id_curso" id="select-inclusion-curso" required>
+                            <option disabled selected>Seleccionar</option>
+                            {% for c in cursos %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Estudiante:</label>
+                        <select class="form-select" name="id_matricula" id="select-inclusion-matricula" required>
+                            <option disabled selected>Seleccionar un Grado</option>
+                        </select>
+
+                        <div class="mt-2 text-center">
+                            <img id="preview-foto" src="" class="rounded-circle border"
+                                style="width: 80px; height: 80px; display: none;">
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Tipo de necesidad:</label>
+                        <input type="text" class="form-control" name="tipo_necesidad" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Plan de apoyo:</label>
+                        <textarea class="form-control" name="plan_apollo" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Fecha ingreso:</label>
+                        <input type="date" class="form-control" name="fecha_ingreso" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Detalles (Recomendable que sea PDF):</label>
+                        <input type="file" class="form-control" name="detalles" accept=".pdf,.doc,.docx"
+                            class="form-control">
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalles -->
+    <div class="modal fade" id="modalVerDetalles" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Documento de Detalles</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Visor PDF -->
+                    <iframe id="iframe-detalles" src="" frameborder="0" width="100%" height="600px"
+                        style="display: none;"></iframe>
+
+                    <!-- Botón de descarga -->
+                    <div id="descargar-detalles" style="display: none;">
+                        <p class="mb-2">Este documento no es un PDF y no puede visualizarse directamente.</p>
+                        <a id="download-link" href="#" class="btn btn-primary" download target="_blank">
+                            <i class="fas fa-download me-1"></i> Descargar documento
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- modalEditarInclusion -->
+    <div class="modal fade" id="modalEditarInclusion" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="POST" id="form-editar-inclusion" enctype="multipart/form-data" class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Inclusión</h5>
+                    <button type="button" class="btn-close btn-close-white " data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="id_inclusion" id="edit-id-inclusion">
+
+                    <!-- Curso -->
+                    <div class="mb-3">
+                        <label>Grado:</label>
+                        <select name="id_curso" id="edit-id-curso" class="form-select" disabled>
+                            {% for c in cursos %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="id_curso" id="edit-id-curso-hidden">
+                    </div>
+
+                    <!-- Estudiante -->
+                    <div class="mb-3">
+                        <label>Estudiante:</label>
+                        <select name="id_matricula" id="edit-id-matricula" class="form-select" disabled>...</select>
+                        <input type="hidden" name="id_matricula" id="edit-id-matricula-hidden">
+                    </div>
+
+
+
+                    <div class="mb-3">
+                        <label>Tipo de necesidad:</label>
+                        <input type="text" class="form-control" name="tipo_necesidad" id="edit-tipo" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Plan de apoyo:</label>
+                        <textarea class="form-control" name="plan_apollo" id="edit-plan" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Fecha ingreso:</label>
+                        <input type="date" class="form-control" name="fecha_ingreso" id="edit-fecha-ingreso" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Actualizar documento de detalles(Recomendable que sea PDF):</label>
+                        <input type="file" class="form-control" name="detalles" accept=".pdf,.doc,.docx"
+                            class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-outline-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/inclusion.js') }}"></script>
+</body>
+
+</html>

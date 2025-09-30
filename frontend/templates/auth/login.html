@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login-transiciones.css') }}">
+</head>
+<body>
+
+<!-- Contenedor de Toasts para notificaciones -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+    <!-- Mensajes Flasheados -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="toast align-items-center text-bg-{{ category }} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">{{ message }}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                </div>
+            </div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- Errores del Formulario -->
+    {% if form.errors %}
+        {% for field, errors in form.errors.items() %}
+            {% for error in errors %}
+                <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">{{ error }}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+</div>
+
+<div class="login-container mx-auto mt-5">
+    <div class="d-flex justify-content-end mb-10">
+        <a href="{{ url_for('main.index') }}" class="back-link" aria-label="Volver al inicio">
+            <i class="fas fa-arrow-left me-2"></i> Inicio
+        </a>
+    </div>
+
+    <header class="login-header text-center mb-4">
+        <div class="login-logo mb-3">
+            <span class="logo-text">Info<span class="logo-icon">jis</span></span>
+        </div>
+        <h1 class="login-title">Bienvenido de nuevo</h1>
+        <p class="login-subtitle">Ingresa tus credenciales para acceder al sistema</p>
+    </header>
+
+    <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}" autocomplete="on" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-floating mb-3 position-relative">
+            {{ form.email(class="form-control", id="email", placeholder="usuario@dominio.com") }}
+            <label for="email"><i class="fa fa-envelope me-2"></i>Correo electrónico</label>
+        </div>
+        <div class="form-floating mb-3 position-relative">
+            {{ form.password(class="form-control", id="password", placeholder="Contraseña") }}
+            <label for="password"><i class="fa fa-lock me-2"></i>Contraseña</label>
+            <span id="togglePassword" class="password-toggle position-absolute end-0 top-50 translate-middle-y me-3" role="button" tabindex="0" aria-label="Mostrar contraseña">
+                <i class="fa fa-eye"></i>
+            </span>
+        </div>
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div class="form-check">
+                {{ form.remember(class="form-check-input", id="remember") }}
+                <label class="form-check-label" for="remember">Recordarme</label>
+            </div>
+            <div class="forgot-password">
+                <a href="{{ url_for('auth.request_reset') }}" aria-label="Recuperar contraseña">¿Olvidaste tu contraseña?</a>
+            </div>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+            <button type="submit" class="btn btn-login d-flex align-items-center justify-content-center">
+                <span class="submit-text">Iniciar sesión</span>
+            </button>
+        </div>
+    </form>
+
+    <footer class="login-footer text-center mb-5">
+        ¿No tienes una cuenta?
+        <a href="#" data-bs-toggle="modal" data-bs-target="#contactAdminModal" aria-label="Contactar al administrador">
+            Contacta al administrador
+        </a>
+    </footer>
+</div>
+
+<!-- Modal: Solicitar acceso al sistema -->
+<div class="modal fade" id="contactAdminModal" tabindex="-1" aria-labelledby="contactAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="contactAdminModalLabel">Solicitar acceso al sistema</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contactAdminForm" class="px-3">
+                    <div class="mb-3">
+                        <label for="contactName" class="form-label">Nombre completo</label>
+                        <input type="text" class="form-control" id="contactName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactEmail" class="form-label">Correo electrónico</label>
+                        <input type="email" class="form-control" id="contactEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactMessage" class="form-label">Mensaje</label>
+                        <textarea class="form-control" id="contactMessage" rows="3" required>Por favor, necesito acceso al sistema Infojis. Mi información es la siguiente:</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="sendContactRequest">Enviar solicitud</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="contactSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="mb-3">Solicitud enviada</h3>
+                <p>
+                    Tu solicitud de acceso ha sido enviada al administrador.<br>
+                    Te contactaremos por correo electrónico una vez que tu cuenta haya sido creada.
+                </p>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js" defer></script>
+
+<!-- Scripts personalizados -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ====================
+        // HELPER: TOAST
+        // ====================
+        const toastContainer = document.querySelector('.toast-container');
+        function showToast(message, category = 'danger') {
+            const toastHTML = `
+                <div class="toast align-items-center text-bg-${category} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>`;
+            
+            const toastElement = document.createElement('div');
+            toastElement.innerHTML = toastHTML;
+            toastContainer.appendChild(toastElement.firstChild);
+
+            const newToast = new bootstrap.Toast(toastContainer.lastChild, { autohide: true, delay: 5000 });
+            newToast.show();
+        }
+
+        // Inicializar toasts existentes (de Flask)
+        const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+        toastElList.forEach(function (toastEl) {
+            const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
+            toast.show();
+        });
+
+        // ====================
+        // TOGGLE PASSWORD VISIBILITY
+        // ====================
+        const toggle = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        if (toggle && passwordInput) {
+            toggle.addEventListener('click', function () {
+                const icon = this.querySelector('i');
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                icon.classList.toggle('fa-eye', !isPassword);
+                icon.classList.toggle('fa-eye-slash', isPassword);
+                passwordInput.focus();
+            });
+            toggle.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        }
+
+        // ====================
+        // FORM SUBMISSION HANDLING
+        // ====================
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function () {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.classList.add('is-loading');
+                submitBtn.disabled = true;
+            });
+        }
+
+        // ====================
+        // CONTACT ADMIN MODAL
+        // ====================
+        const contactAdminForm = document.getElementById('contactAdminForm');
+        const sendContactRequestBtn = document.getElementById('sendContactRequest');
+        if (sendContactRequestBtn) {
+            sendContactRequestBtn.addEventListener('click', function () {
+                if (contactAdminForm) {
+                    const name = document.getElementById('contactName').value;
+                    const email = document.getElementById('contactEmail').value;
+                    const message = document.getElementById('contactMessage').value;
+
+                    if (!name || !email || !message) {
+                        showToast('Por favor complete todos los campos.');
+                        return;
+                    }
+                    if (!email.includes('@')) {
+                        showToast('Por favor ingrese un email válido.');
+                        return;
+                    }
+                    submitRequest();
+                }
+            });
+        }
+
+        // ====================
+        // HELPER: SUBMIT CONTACT REQUEST
+        // ====================
+        function submitRequest() {
+            const contactForm = document.getElementById('contactAdminForm');
+            const name = document.getElementById('contactName').value;
+            const email = document.getElementById('contactEmail').value;
+            const message = document.getElementById('contactMessage').value;
+
+            fetch("{{ url_for('auth.get_csrf_token') }}")
+                .then(res => res.json())
+                .then(data => {
+                    const csrfToken = data.csrf_token;
+                    return fetch("{{ url_for('auth.contact_request') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name, email, message })
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('La respuesta del servidor no fue OK');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const successModal = new bootstrap.Modal(document.getElementById('contactSuccessModal'));
+                        successModal.show();
+                        const contactModal = bootstrap.Modal.getInstance(document.getElementById('contactAdminModal'));
+                        contactModal.hide();
+                        if (contactForm) contactForm.reset();
+                    } else {
+                        showToast(data.error || 'No se pudo enviar la solicitud.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la solicitud:', error);
+                    showToast('Hubo un problema al enviar tu solicitud. Inténtalo más tarde.');
+                });
+        }
+    });
+</script>
+
+</body>
+</html>

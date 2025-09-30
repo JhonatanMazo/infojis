@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>     
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modo_oscuro.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../../static/css/modo_oscuro.css">
+    <style>
+    .card i,
+        .bg-successs {
+        color: #f60 !important;
+    }
+    
+    .card .bg-primary.bg-opacity-10,
+    .card .bg-success.bg-opacity-10,
+    .card .bg-info.bg-opacity-10,
+        .bg-successs {
+        background-color: rgba(255, 102, 0, 0.1) !important;
+    }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/messages-flask.html' %}
+            {% include 'partials/header.html' %}
+            
+            <!-- Contenido del Dashboard -->
+            <div class="container-fluid py-4 ">
+                <!-- Fila de Estadísticas -->
+               <div class="row g-4 mb-4">
+                    <!-- Tarjeta Estudiantes -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-2">Estudiantes Activos</h6>
+                                        <h3 class="mb-0">{{ total_estudiantes }}</h3>
+                                    </div>
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-users text-primary fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="badge bg-successs">{{ nuevos_estudiantes }}</span>
+                                    <small class="text-muted ms-2">este mes</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta Docentes -->
+                    <!-- Tarjeta Docentes / Cursos Asignados -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        {% if current_user.rol == 'docente' %}
+                                            <h6 class="text-muted mb-2">Cursos Asignados</h6>
+                                            <h3 class="mb-0">{{ total_cursos_asignados }}</h3>
+                                        {% else %}
+                                            <h6 class="text-muted mb-2">Docentes</h6>
+                                            <h3 class="mb-0">{{ total_docentes }}</h3>
+                                        {% endif %}
+                                    </div>
+                                    <div class="bg-successs bg-opacity-10 p-3 rounded">
+                                        {% if current_user.rol == 'docente' %}
+                                            <i class="fas fa-book text-successs fs-4"></i>
+                                        {% else %}
+                                            <i class="fas fa-chalkboard-teacher text-successs fs-4"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    {% if current_user.rol == 'docente' %}
+                                        <span class="badge bg-successs">{{ nuevos_cursos_asignados }}</span>
+                                        <small class="text-muted ms-2">este año</small>
+                                    {% else %}
+                                        <span class="badge bg-successs">{{ nuevos_docentes }}</span>
+                                        <small class="text-muted ms-2">este año</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                    <!-- Tarjeta Asistencia -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                <h6 class="text-muted mb-2">Asistencia Hoy</h6>
+                                <h3 class="mb-0">{{ asistencias_hoy_count }}</h3>
+                            </div>
+                            <div class="bg-successs bg-opacity-10 p-3 rounded">
+                                <i class="fas fa-user-check text-info fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            {% if asistencias_hoy_count > asistencias_ayer_count %}
+                                <span class="badge bg-successs">{{ asistencias_hoy_count - asistencias_ayer_count }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ asistencias_hoy_count - asistencias_ayer_count }}</span>
+                            {% endif %}
+                            <small class="text-muted ms-2">vs ayer</small>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta Inclusión -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-2">Estudiantes con NEE</h6>
+                                        <h3 class="mb-0">{{ total_inclusiones }}</h3>
+                                    </div>
+                                    <div  class="bg-successs bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-wheelchair text-warning fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="badge bg-successs">{{ porcentaje_inclusion }}%</span>
+                                    <small class="text-muted ms-2">del total</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila de Gráficos y Actividad -->
+                <div class="row g-4">
+                    <!-- Gráfico de Matrículas -->
+                    <div class="col-lg-8">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">Matrículas por Grado</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ periodo_actual.nombre if periodo_actual else "Seleccionar periodo" }}
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        {% for periodo in periodos %}
+                                            <li><a class="dropdown-item" href="{{ url_for('dashboard.index', periodo_id=periodo.id) }}">{{ periodo.nombre }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="matriculasChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actividad Reciente -->
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">Actividad Reciente</h5>
+                                <a href="{{ url_for('actividades.index') }}" class="btn btn-sm btn-outline-secondary">Ver todo</a>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for actividad in actividades_recientes %}
+                                    <div class="list-group-item py-3">
+                                        <div class="d-flex">
+                                            <div class="flex-shrink-0">
+                                                {% if actividad.tipo == 'matricula' %}
+                                                    <i class="fas fa-user-graduate text-primary"></i>
+                                                {% elif actividad.tipo == 'pago' %}
+                                                    <i class="fas fa-money-bill-wave text-successs"></i>
+                                                {% elif actividad.tipo == 'observacion' %}
+                                                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                                                {% elif actividad.tipo == 'docente' %}
+                                                    <i class="fas fa-chalkboard-teacher text-info"></i>
+                                                {% elif actividad.tipo == 'asistencia' %}
+                                                    <i class="fas fa-user-check text-secondary"></i>
+                                                {% elif actividad.tipo == 'inclusion' %}
+                                                    <i class="fas fa-wheelchair text-dark"></i>
+                                                {% else %}
+                                                    <i class="fas fa-info-circle text-muted"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <!--<small class="text-muted float-end">{{ actividad.fecha|timeago }}</small>-->
+                                                <h6 class="mb-1">{{ actividad.titulo }}</h6>
+                                                <p class="mb-0 small">{{ actividad.detalle }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="list-group-item py-3 text-center text-muted">
+                                        No hay actividad reciente para mostrar
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Segunda fila de gráficos -->
+                <div class="row g-4 mt-4">
+                    <!-- Gráfico de Asistencia -->
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Asistencia Semanal</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="asistenciaChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Docentes por Asignatura -->
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            {% if current_user.rol == 'admin' %}
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Docentes por Asignatura</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="docentesChart"></canvas>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Asignaturas Asignadas</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="docentesChart"></canvas>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+            
+    <!-- Scripts de bootstrap -->        
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts personalizados-->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}" defer></script>
+    
+    <!-- Scripts para gráficos -->
+    <script>
+        // Gráfico de Matrículas por Grado
+        const matriculasCtx = document.getElementById('matriculasChart').getContext('2d');
+        const matriculasChart = new Chart(matriculasCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ cursos_nombres|tojson }},
+                datasets: [{
+                    label: 'Matrículas',
+                    data: {{ matriculas_por_curso|tojson }},
+                    backgroundColor: 'rgba(255, 102, 0, 0.7)',
+                    borderColor: 'rgba(255, 102, 0, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Asistencia Semanal
+        const asistenciaCtx = document.getElementById('asistenciaChart').getContext('2d');
+        const asistenciaChart = new Chart(asistenciaCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ dias_semana|tojson }},
+                datasets: [{
+                    label: 'Asistencias',
+                    data: {{ asistencia_semanal|tojson }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Docentes por Asignatura
+        const docentesCtx = document.getElementById('docentesChart').getContext('2d');
+        const docentesChart = new Chart(docentesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ asignaturas_nombres|tojson }},
+                datasets: [{
+                    data: {{ docentes_por_asignatura|tojson }},
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var docentes = {{ docentes_info|tojson }}[context.dataIndex];
+                                if (docentes && docentes.length > 0) {
+                                    var labels = docentes.map(function(d) {
+                                        return d.nombre + ' - ' + d.asignatura + ' (' + d.curso + ')';
+                                    });
+                                    return labels;
+                                } else {
+                                    return context.label + ': ' + context.parsed;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<div class="sidebar-header">
+    <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center justify-content-center rounded"
+            style="width: 36px; height: 36px; background: #f60;">
+            <i class="fas fa-graduation-cap text-white fs-5"></i>
+        </div>
+        <span class="ms-2 fs-4 fw-bold" style="font-family: 'Poppins', sans-serif;">
+            <span class="text-primary">Info</span><span class="text-dark">jis</span>
+        </span>
+    </div>
+
+    
+</div>
+<div class="sidebar-body">
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a href="/usuarios/" class="nav-link {% if request.path == '/usuarios/' %}active{% endif %}">
+                <i class="fas fa-user-gear me-2"></i> Usuarios
+            </a>
+        </li>
+
+        <li class="nav-item has-submenu">
+            <a href="/academico/" data-bs-toggle="collapse" data-bs-target="#academicoSubmenu"
+                aria-expanded="{% if request.path.startswith('/cursos') or request.path.startswith('/asignaturas') or request.path.startswith('/periodos') %}true{% else %}false{% endif %}"
+                class="nav-link">
+                <i class="fas fa-university me-2"></i> Académico
+                <i class="fas fa-chevron-down submenu-indicator"></i>
+            </a>
+            <ul class="submenu collapse {% if request.path.startswith('/cursos') or request.path.startswith('/asignaturas') or request.path.startswith('/periodos') %}show{% endif %}"
+                id="academicoSubmenu">
+                <li><a href="/cursos/" class="{% if request.path == '/cursos/' %}active{% endif %}">Gestión de
+                        Cursos</a></li>
+                <li><a href="/asignaturas/" class="{% if request.path == '/asignaturas/' %}active{% endif %}">Gestión de
+                        Asignaturas</a></li>
+                <li><a href="/periodos/" class="{% if request.path == '/periodos/' %}active{% endif %}">Gestión de
+                        Períodos</a></li>
+            </ul>
+        </li>
+
+        <li class="nav-item">
+            <a href="/asignacion/" class="nav-link {% if request.path == '/asignacion/' %}active{% endif %}">
+                <i class="fas fa-clipboard-list me-2"></i> Asignación
+            </a>
+        </li>
+
+        <li class="nav-item has-submenu">
+            <a href="/estudiantes/" data-bs-toggle="collapse" data-bs-target="#estudiantesSubmenu"
+                aria-expanded="{% if request.path.startswith('/matriculas') or request.path.startswith('/asistencias') or request.path.startswith('/calificaciones') or request.path.startswith('/observaciones') or request.path.startswith('/transferir') or request.path.startswith('/exportar_datos') %}true{% else %}false{% endif %}"
+                class="nav-link">
+                <i class="fas fa-users me-2"></i> Estudiantes
+                <i class="fas fa-chevron-down submenu-indicator"></i>
+            </a>
+            <ul class="submenu collapse {% if request.path.startswith('/matriculas') or request.path.startswith('/asistencias') or request.path.startswith('/calificaciones') or request.path.startswith('/observaciones') or request.path.startswith('/transferir') or request.path.startswith('/exportar_datos') %}show{% endif %}"
+                id="estudiantesSubmenu">
+                <li><a href="/matriculas/"
+                        class="{% if request.path == '/matriculas/' %}active{% endif %}">Matrículas</a></li>
+                <li><a href="/asistencias/"
+                        class="{% if request.path == '/asistencias/' %}active{% endif %}">Asistencias</a></li>
+                <li><a href="/calificaciones/"
+                        class="{% if request.path == '/calificaciones/' %}active{% endif %}">Calificaciones</a></li>
+                <li><a href="/observaciones/"
+                        class="{% if request.path == '/observaciones/' %}active{% endif %}">Observaciones</a></li>
+                <li><a href="/transferir/"
+                        class="{% if request.path == '/transferir/' %}active{% endif %}">Transferir</a></li>
+                <li><a href="/exportar_datos/"
+                        class="{% if request.path == '/exportar_datos/' %}active{% endif %}">Exportar Datos</a></li>
+            </ul>
+        </li>
+
+        <li class="nav-item">
+            <a href="/inclusion/" class="nav-link {% if request.path == '/inclusion/' %}active{% endif %}">
+                <i class="fas fa-hand-holding-heart me-2"></i> Inclusión
+            </a>
+        </li>
+
+        <li class="nav-item has-submenu">
+            <a href="/informes/" data-bs-toggle="collapse" data-bs-target="#informesSubmenu"
+                aria-expanded="{% if request.path.startswith('/informes') or request.path.startswith('/libro_final') or request.path.startswith('/boletines') or request.path.startswith('/posiciones') %}true{% else %}false{% endif %}"
+                class="nav-link">
+                <i class="fas fa-chart-line me-2"></i> Informes
+                <i class="fas fa-chevron-down submenu-indicator"></i>
+            </a>
+            <ul class="submenu collapse {% if request.path.startswith('/informes/academico') or request.path.startswith('/informes/estadisticas') or request.path.startswith('/boletines') or request.path.startswith('/libro_final') or request.path.startswith('/posiciones') %}show{% endif %}"
+                id="informesSubmenu">
+                <li><a href="/boletines/" class="{% if request.path == '/boletines/' %}active{% endif %}">Boletines</a></li>
+                <li><a href="/informes/academico" class="{% if request.path.startswith('/informes/academico') %}active{% endif %}">Académicos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('estadisticas.estadisticas') }}"
+                        class="nav-link {% if request.path.startswith('/informes/estadisticas') %}active{% endif %}">
+                        Estadísticas
+                    </a>
+                </li>
+                <li><a href="/libro_final/" class="{% if request.path == '/libro_final/' %}active{% endif %}">Libro
+                        Final</a></li>
+                <li><a href="/posiciones/" class="{% if request.path == '/posiciones/' %}active{% endif %}">Posiciones
+                        por Grados</a></li>
+            </ul>
+        </li>
+
+        <li class="nav-item">
+            <a href="/pagos/" class="nav-link {% if request.path == '/pagos/' %}active{% endif %}">
+                <i class="fas fa-money-bill-wave me-2"></i> Pagos
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a href="/documentos/" class="nav-link {% if request.path == '/documentos/' %}active{% endif %}">
+                <i class="fas fa-file me-2"></i> Documentos
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/reciclaje/" class="nav-link {% if request.path == '/reciclaje/' %}active{% endif %}">
+                <i class="fas fa-trash-restore"></i>Papelera de Reciclaje
+            </a>
+        </li>
+    </ul>
+</div>

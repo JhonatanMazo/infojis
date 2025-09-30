@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infojis - Sistema de gestión académica INFOJIS">
+    <meta name="keywords" content="sistema escolar, gestión educativa, administración escolar, plataforma docente">
+    <meta name="author" content="Infojis">
+    <link rel="icon" type="image/png"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    <title>Infojis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+     <link rel="stylesheet" href="../../static/css/main.css">
+    <link rel="stylesheet" href="../../static/css/modo_oscuro.css">
+</head>
+
+
+<body>
+    <div class="app-container">
+        
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            {% if current_user.rol == 'admin' %}
+                {% include 'partials/sidebar-admin.html' %}
+            {% elif current_user.rol == 'docente' %}
+                {% include 'partials/sidebar-docente.html' %}
+            {% else %}
+                <div class="p-3 text-danger">Rol no reconocido: {{ current_user.rol }}</div>
+            {% endif %}
+        </nav>
+
+        <!-- Overlay para cerrar sidebar en móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        {% include 'partials/messages-flask.html' %}
+
+        <!-- Contenido Principal -->
+        <main class="main-content" id="main-content">
+            {% include 'partials/header.html' %}
+
+
+            <!-- Contenido del módulo de Reciclaje -->
+            <div class="container-fluid py-4">
+                <!-- Encabezado -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex align-items-center mb-3">
+                            <div>
+                                <h5 class="mb-1">Papelera de Reciclaje</h5>
+                                <p class="text-muted mb-0">
+                                    Los elementos eliminados se conservan hasta que el usuario los elimine permanentemente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros y acciones -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo de elemento:</label>
+                                <select class="form-select" id="select-tipo-elemento">
+                                    <option value="todos" {% if tipo_filtro == 'todos' %}selected{% endif %}>Todos los tipos</option>
+                                    <option value="usuario" {% if tipo_filtro == 'usuario' %}selected{% endif %}>Usuarios</option>
+                                    <option value="asignacion" {% if tipo_filtro == 'asignacion' %}selected{% endif %}>Asignaciones</option>
+                                    <option value="matricula" {% if tipo_filtro == 'matricula' %}selected{% endif %}>Matrículas</option>
+                                    <option value="periodo" {% if tipo_filtro == 'periodo' %}selected{% endif %}>Periodos</option>
+                                    <option value="curso" {% if tipo_filtro == 'curso' %}selected{% endif %}>Cursos</option>
+                                    <option value="asignatura" {% if tipo_filtro == 'asignatura' %}selected{% endif %}>Asignaturas</option>
+                                    <option value="inclusion" {% if tipo_filtro == 'inclusion' %}selected{% endif %}>Inclusion</option>
+                                    <option value="pago" {% if tipo_filtro == 'pago' %}selected{% endif %}>Pagos</option>
+                                    <option value="observacion" {% if tipo_filtro == 'observacion' %}selected{% endif %}>Observaciones</option>
+                                    <option value="boletin" {% if tipo_filtro == 'boletin' %}selected{% endif %}>Boletines</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-filter w-100" id="btn-filtrar">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de elementos eliminados -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Elementos Eliminados</h5>
+                        <div class="text-muted small">
+                                <span class="me-3"><i class="fas fa-eye me-1 text-primary"></i><strong>Total: </strong><span
+                                        id="elementos-mostrados">{{ elementos_pagination.total }}</span></span>
+                                <span><i class="fas fa-folder me-1 text-primary"></i><strong>Tipo: </strong><span
+                                        id="tipoElemento">{{ 'Todos' if tipo_filtro == 'todos' else tipo_filtro|capitalize }}</span></span>
+                                <span><i class="fas fa-calendar-alt me-1 text-primary"></i><strong>Año Lectivo: </strong><span
+                                        id="anioLectivo">{{ anio_lectivo }}</span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" id="btn-exportar">
+                                <i class="fas fa-undo"></i> Restaurar todo
+                            </button>
+                            <button class="btn btn-outline-primary" id="btn-limpiar-papelera">
+                                <i class="fas fa-broom me-1"></i> Limpiar todo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>N°</th>
+                                        <th>Elemento</th>
+                                        <th>Tipo</th>
+                                        <th>Eliminado por</th>
+                                        <th>Fecha de eliminación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-reciclaje">
+                                    {% for tipo, item, user_name, fecha in elementos_pagination.items %}
+                                    <tr class="deleted-item">
+                                        <td>{{ (elementos_pagination.page - 1) * elementos_pagination.per_page + loop.index }}</td>
+                                        <td>
+                                            <div>
+                                                <div>
+                                                    <div class="fw-bold">
+                                                        {% if tipo == 'usuario' %}
+                                                            {{ item.nombre }} {{ item.apellidos }}
+                                                        {% elif tipo == 'curso' %}
+                                                            {{ item.nombre }}
+                                                        {% elif tipo == 'matricula' %}
+                                                            {{ item.nombres }} {{ item.apellidos }}
+                                                        {% elif tipo == 'asignacion' %}
+                                                            Asignación {{ item.id }}
+                                                        {% elif tipo == 'inclusion' %}
+                                                            Inclusión {{ item.id }}
+                                                        {% elif tipo == 'asignatura' %}
+                                                            {{ item.nombre }}
+                                                        {% elif tipo == 'periodo' %}
+                                                            {{ item.nombre }}
+                                                        {% elif tipo == 'observacion' %}
+                                                            Observación {{ item.id }}
+                                                        {% elif tipo == 'pago' %}
+                                                            Pago {{ item.id }}
+                                                        {% elif tipo == 'boletin' %}
+                                                            Boletín de {{ item.estudiante_nombre }} ({{ item.periodo_nombre }})
+                                                        {% endif %}
+                                                    </div>
+                                                    <small class="text-muted">ID: {{ item.id }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-primary">{{ tipo|capitalize }}</span></td>
+                                        <td>{{ user_name }}</td>
+                                        <td>{{ fecha.strftime('%d/%m/%Y') if fecha else 'No disponible' }}</td>
+                                        <td>
+                                            <form action="{{ url_for('reciclaje.restaurar_item', tipo_modelo=tipo, item_id=item.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-sm btn-outline-success me-1 btn-restaurar" title="Restaurar" data-nombre="
+                                                    {% if tipo == 'usuario' %}{{ item.nombre }} {{ item.apellidos }}{% elif tipo == 'curso' %}{{ item.nombre }}{% elif tipo == 'matricula' %}{{ item.nombres }} {{ item.apellidos }}{% else %}Elemento {{ item.id }}{% endif %}">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('reciclaje.eliminar_definitivo_item', tipo_modelo=tipo, item_id=item.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger btn-eliminar-definitivo" title="Eliminar definitivamente" data-nombre="
+                                                    {% if tipo == 'usuario' %}{{ item.nombre }} {{ item.apellidos }}{% elif tipo == 'curso' %}{{ item.nombre }}{% elif tipo == 'matricula' %}{{ item.nombres }} {{ item.apellidos }}{% else %}Elemento {{ item.id }}{% endif %}">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-info-circle fa-2x mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <p class="mb-0">No hay elementos en la papelera de reciclaje.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="fas fa-eye me-1 text-primary"></i>
+                                Total: {{ elementos_pagination.total }} registros |
+                                Mostrando:
+                                {{ (elementos_pagination.page - 1) * elementos_pagination.per_page + 1 }} -
+                                {{ elementos_pagination.page * elementos_pagination.per_page if elementos_pagination.page * elementos_pagination.per_page < elementos_pagination.total else elementos_pagination.total }}
+                            </div>
+                            <nav aria-label="Paginación">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item {% if not elementos_pagination.has_prev %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('reciclaje.index', page=elementos_pagination.prev_num, tipo_modelo=tipo_filtro) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    {% for page_num in elementos_pagination.iter_pages() %}
+                                    {% if page_num %}
+                                    <li class="page-item {% if page_num == elementos_pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('reciclaje.index', page=page_num, tipo_modelo=tipo_filtro) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    <li class="page-item {% if not elementos_pagination.has_next %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('reciclaje.index', page=elementos_pagination.next_num, tipo_modelo=tipo_filtro) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de confirmación para restaurar -->
+    <div class="modal fade" id="modalRestaurar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-undo me-2 text-success"></i>Confirmar Restauración
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>¿Está seguro que desea restaurar este elemento?</div>
+                    </div>
+                    <p><strong id="elemento-restaurar"></strong> volverá a estar disponible en el sistema.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="confirmar-restaurar">
+                        <i class="fas fa-undo me-1"></i>Restaurar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación para eliminar definitivamente -->
+    <div class="modal fade" id="modalEliminarDefinitivo" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Eliminar Definitivamente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div><strong>¡Atención!</strong> Esta acción no se puede deshacer.</div>
+                    </div>
+                    <p>¿Está completamente seguro que desea eliminar permanentemente <strong
+                            id="elemento-eliminar"></strong>?</p>
+                    <p class="text-danger small"><i class="fas fa-warning me-1"></i>Los datos se perderán para siempre.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmar-eliminar">
+                        <i class="fas fa-times me-1"></i>Eliminar Definitivamente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación para limpiar papelera -->
+    <div class="modal fade" id="modalLimpiarPapelera" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-broom me-2 text-warning"></i>Limpiar Papelera
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div><strong>¡Atención!</strong> Esta acción no se puede deshacer.</div>
+                    </div>
+                    <p>¿Está completamente seguro que desea eliminar permanentemente todos los elementos de la papelera?
+                    </p>
+                    <p class="text-danger small"><i class="fas fa-warning me-1"></i>Se eliminarán <strong
+                            id="cantidad-elementos">0</strong> elementos y todos los datos se perderán para siempre.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="confirmar-limpiar">
+                        <i class="fas fa-broom me-1"></i>Limpiar Papelera
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modo_oscuro.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/views/reciclaje.js') }}"></script>
+</body>
+</html>
